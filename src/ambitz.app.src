@@ -1,0 +1,17 @@
+{application, ambitz,
+   [
+      {description, "native api to distributed actors"},
+      {vsn,         "0.0.0"},
+      {modules,     []},
+      {registered,  []},
+      {applications,[
+         kernel
+        ,stdlib
+        ,lager
+        ,ek
+        ,pipe
+      ]},
+      {mod, {ambitz_app, []}},
+      {env, []}
+   ]
+}.  
