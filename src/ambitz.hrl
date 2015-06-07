@@ -17,6 +17,7 @@
 -define(CONFIG_RING, ambit).
 -endif.
 
+
 %% 
 %% logger macros
 %%   debug, info, notice, warning, error, critical, alert, emergency

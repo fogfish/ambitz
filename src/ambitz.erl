@@ -1,6 +1,7 @@
 %% @doc
-%%   native api to distributed services
+%%   native api to distributed actors
 -module(ambitz).
+-include("ambitz.hrl").
 
 -export([behaviour_info/1]).
 -export([start/0]).
@@ -82,7 +83,5 @@ start_link(Mod) ->
 
 call(Pool, Key, Req, Opts) ->
    ambitz_req:call(Pool, Key, Req, Opts).
-
-
 
 
