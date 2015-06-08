@@ -17,15 +17,6 @@
 -define(CONFIG_RING, ambit).
 -endif.
 
-%%
-%% ambit entity
--record(entity, {
-   key  = undefined :: binary(),       %% entity key
-   val  = undefined :: any(),          %% entity val
-   vsn  = []        :: uid:vclock()    %% entity dotted version
-}).
-
-
 %% 
 %% logger macros
 %%   debug, info, notice, warning, error, critical, alert, emergency

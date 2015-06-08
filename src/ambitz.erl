@@ -2,6 +2,7 @@
 %%   native api to distributed actors
 -module(ambitz).
 -include("ambitz.hrl").
+-include("include/ambitz.hrl").
 
 -export([behaviour_info/1]).
 -export([start/0]).
