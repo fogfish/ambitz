@@ -9,6 +9,23 @@
    start_link/1,
    call/4
 ]).
+-export([
+   entity/1
+  ,entity/2
+  ,service/1
+  ,service/2
+]).
+-export([
+   spawn/1,
+   spawn/2,
+   lookup/1,
+   lookup/2,
+   free/1,
+   free/2
+]).
+
+-type(key()    :: binary()).
+-type(entity() :: #entity{}).
 
 %%%----------------------------------------------------------------------------   
 %%%
@@ -61,7 +78,7 @@ behaviour_info(_) ->
 
 %%%----------------------------------------------------------------------------   
 %%%
-%%% interface
+%%% request coordinator interface
 %%%
 %%%----------------------------------------------------------------------------   
 
@@ -83,5 +100,81 @@ start_link(Mod) ->
 
 call(Pool, Key, Req, Opts) ->
    ambitz_req:call(Pool, Key, Req, Opts).
+
+%%%----------------------------------------------------------------------------   
+%%%
+%%% api
+%%%
+%%%----------------------------------------------------------------------------   
+
+%%
+%% create casual context for ambit entity
+-spec(entity/1 :: (binary()) -> entity()).
+-spec(entity/2 :: (binary(), any()) -> entity()).
+
+entity(Key) ->
+   #entity{key = Key}.
+
+entity(Key, Service) ->
+   #entity{key = Key, val = Service}.
+
+
+%%
+%% get casual context property
+-spec(service/1 :: (entity()) -> any() | undefined).
+
+service(#entity{val = Service}) ->
+   Service.
+
+%%
+%% get casual context property
+-spec(service/2 :: (entity(), any()) -> entity()).
+
+service(#entity{} = Ent, Service) ->
+   Ent#entity{val = Service}.
+
+%%
+%% spawn service on the cluster
+%%  Options
+%%    w - number of succeeded writes
+-spec(spawn/1 :: (entity()) -> entity() | {error, any()}).
+-spec(spawn/2 :: (entity(), list()) -> entity() | {error, any()}).
+
+spawn(Entity) ->
+   ambitz:spawn(Entity, []).
+
+spawn(#entity{key = Key, vsn = Vsn}=Entity, Opts) ->
+   call(ambit_req_create, Key, {create, Entity#entity{vsn = uid:vclock(Vsn)}}, Opts).
+
+%%
+%% free service on the cluster
+%%  Options
+%%    w - number of succeeded writes
+-spec(free/1 :: (entity()) -> entity() | {error, any()}).
+-spec(free/2 :: (entity(), list()) -> entity() | {error, any()}).
+
+free(Entity) ->
+   ambitz:free(Entity, []).
+
+free(#entity{key = Key, vsn = Vsn}=Entity, Opts) ->
+   call(ambit_req_remove, Key, {remove, Entity#entity{vsn = uid:vclock(Vsn)}}, Opts).
+
+%%
+%% lookup service on the cluster
+%%  Options
+%%    r - number of succeeded reads
+-spec(lookup/1 :: (key() | entity()) -> entity() | {error, any()}).
+-spec(lookup/2 :: (key() | entity(), any()) -> entity() | {error, any()}).
+
+lookup(Key) ->
+   ambitz:lookup(Key, []).
+
+lookup(Key, Opts)
+ when is_binary(Key) orelse is_integer(Key) ->
+   ambitz:lookup(entity(Key), Opts);
+
+lookup(#entity{key = Key, vsn = Vsn}=Entity, Opts) ->
+   call(ambit_req_lookup, Key, {lookup, Entity#entity{vsn = uid:vclock(Vsn)}}, Opts).
+
 
 

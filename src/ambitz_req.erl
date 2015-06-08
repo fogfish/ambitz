@@ -50,6 +50,7 @@ call(Pool, Key, Req, Opts) ->
 
 do_call([{_, _, _, Peer} | Tail], Pool, Req, Opts) ->
    case 
+      %% @todo: remove deps to pq
       pq:call({Pool, erlang:node(Peer)}, Req, opts:val(t, ?CONFIG_TIMEOUT_REQ, Opts))
    of
       {error, ebusy} ->
