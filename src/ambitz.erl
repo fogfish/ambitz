@@ -8,6 +8,7 @@
 -export([start/0]).
 -export([
    start_link/1,
+   call/3,
    call/4
 ]).
 -export([
@@ -97,8 +98,12 @@ start_link(Mod) ->
 
 %%
 %% request distributed actor
+-spec(call/3 :: (atom(), binary(), any()) -> any() | {error, any()}).
 -spec(call/4 :: (atom(), binary(), any(), list()) -> any() | {error, any()}).
 
+call(Pool, Key, Req) ->
+   ambitz_req:call(Pool, Key, Req, []).
+   
 call(Pool, Key, Req, Opts) ->
    ambitz_req:call(Pool, Key, Req, Opts).
 
