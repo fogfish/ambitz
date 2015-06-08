@@ -40,7 +40,7 @@ behaviour_info(callbacks) ->
       %%
       %% asynchronously cast request to transaction actor
       %%
-      %% -spec(cast/2 :: (ek:vnode(), uid:g(), any(), any()) -> reference()). 
+      %% -spec(cast/4 :: (ek:vnode(), key(), req(), opts()) -> reference()). 
      ,{cast,    4} 
 
       %%

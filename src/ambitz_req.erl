@@ -167,6 +167,7 @@ req_new(Mod, Pipe, Opts) ->
       pipe  => Pipe,
       n     => opts:val(r, opts:val(w, ?CONFIG_W, Opts), Opts),
       t     => opts:val(t, ?CONFIG_TIMEOUT_REQ, Opts),
+      opts  => Opts,
       value => orddict:new()
    }.
 
@@ -177,11 +178,11 @@ req_free(#{mod := Mod}) ->
 
 %%
 %% cast request to each peer 
-req_cast(Peers, Key, Req, #{mod := Mod, t := T}=State) ->
+req_cast(Peers, Key, Req, #{mod := Mod, t := T, opts := Opts}=State) ->
    Tx   = Mod:guid(Key),
    List = lists:map(
       fun(Peer) ->
-         {Mod:monitor(Peer), Peer, Mod:cast(Peer, Tx, Key, Req)}
+         {Mod:monitor(Peer), Peer, Mod:cast(Peer, Key, Req, [{tx, Tx}|Opts])}
       end,
       Peers
    ),
