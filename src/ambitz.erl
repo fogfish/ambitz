@@ -42,7 +42,7 @@ behaviour_info(callbacks) ->
       %%
       %% ensure presence of actor in the cluster
       %%
-      %% -spec(ensure/2 :: ([ek:vnode()], list()) -> false | [ek:vnode()]).
+      %% -spec(ensure/3 :: ([ek:vnode()], key(), opts()) -> false | [ek:vnode()]).
       {ensure,   3}
 
       %%
@@ -74,6 +74,12 @@ behaviour_info(callbacks) ->
       %%
       %% -spec(join/2 :: (any(), any()) -> any()).
      ,{join,    2}
+
+      %%
+      %% optional - read repair
+      %% 
+      %% -spec(repair/2 :: (peers(), any()) -> ok).
+      %% {repair, 2}
    ];
 behaviour_info(_) ->
    undefined.

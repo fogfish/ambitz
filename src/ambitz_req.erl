@@ -204,16 +204,24 @@ req_accept(Value, Peer, #{mod := Mod, key := _Key, value := Value0}=State) ->
 
 %%
 %%
-req_commit(#{n := N, key := _Key, value := Value, pipe := Pipe}=State) ->
+req_commit(#{n := N, key := _Key, value := Value, opts := Opts, pipe := Pipe}=State) ->
    case
       lists:partition(
          fun({_, {List, _Val}}) -> length(List) >= N end, 
          lists:reverse(lists:sort(fun sort/2, Value))
       )
    of
-      {[{_Hash, {_Peers, Result}} | _Head], _Tail} ->
+      {[{_Hash, {_Peers, Result}} | Head], Tail} ->
          ?DEBUG("[~p] result ~p ~p (~p)~n", [self(), _Key, Result, length(_Peers)]),
          pipe:ack(Pipe, Result),
+         case opts:val(rr, undefined, Opts) of
+            rr ->
+               repair(Result, Head ++ Tail, State);
+            _  ->
+               ok
+         end,
+         
+
          %% @todo: define read-repair strategy
          % read_repair(Result, lists:flatten([X || {_, {X, _}} <- Head ++ Tail]), State),
          State;
@@ -223,14 +231,12 @@ req_commit(#{n := N, key := _Key, value := Value, pipe := Pipe}=State) ->
          State
    end.
 
-% %%
-% %%
-% read_repair(undefined,  _, _) ->
-%    ok;
-% read_repair({error, _}, _, _) ->
-%    ok;
-% read_repair(Val, Pids, #{key := Key}) ->
-%    [cache:put(Pid, Key, Val) || Pid <- Pids].
+repair({error, _}, _Peers, _State) ->
+   ok;
+repair(_, [], _State) ->
+   ok;
+repair(Result, Peers, #{mod := Mod}) ->
+   Mod:repair(lists:flatten([X || {_, {X, _}} <- Peers]), Result).
 
 %%
 %%
