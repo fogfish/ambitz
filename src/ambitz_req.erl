@@ -197,6 +197,7 @@ req_cast(Peers, Key, Req, #{mod := Mod, t := T, opts := Opts}=State) ->
 %%
 %% accept vs merge
 req_accept(Value, Peer, #{mod := Mod, key := _Key, value := Value0}=State) ->
+   %% @todo: we need order rules
    {Hash, Unit} = Mod:unit(Value),
    Value1 = orddict:update(Hash, fun({List, Acc}) -> {[Peer | List], Mod:join(Unit, Acc)} end, {[Peer], Unit}, Value0),
    ?DEBUG("[~p] accept ~p ~p", [self(), _Key, Unit]),
@@ -214,16 +215,12 @@ req_commit(#{n := N, key := _Key, value := Value, opts := Opts, pipe := Pipe}=St
       {[{_Hash, {_Peers, Result}} | Head], Tail} ->
          ?DEBUG("[~p] result ~p ~p (~p)~n", [self(), _Key, Result, length(_Peers)]),
          pipe:ack(Pipe, Result),
-         case opts:val(rr, undefined, Opts) of
+         case opts:val(repair, undefined, Opts) of
             rr ->
                repair(Result, Head ++ Tail, State);
             _  ->
                ok
          end,
-         
-
-         %% @todo: define read-repair strategy
-         % read_repair(Result, lists:flatten([X || {_, {X, _}} <- Head ++ Tail]), State),
          State;
       
       {[], _} ->
