@@ -235,8 +235,8 @@ repair({error, _}, _Peers, _State) ->
    ok;
 repair(_, [], _State) ->
    ok;
-repair(Result, Peers, #{mod := Mod}) ->
-   Mod:repair(lists:flatten([X || {_, {X, _}} <- Peers]), Result).
+repair(Result, Peers, #{mod := Mod, key := Key, req := Req}) ->
+   Mod:repair(lists:flatten([X || {_, {X, _}} <- Peers]), Key, Req, Result).
 
 %%
 %%
