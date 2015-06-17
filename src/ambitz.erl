@@ -14,6 +14,7 @@
 -export([
    entity/1
   ,entity/2
+  ,entity/3
   ,service/1
   ,service/2
 ]).
@@ -106,12 +107,16 @@ start_link(Mod) ->
 %% request distributed actor
 -spec(call/3 :: (atom(), binary(), any()) -> any() | {error, any()}).
 -spec(call/4 :: (atom(), binary(), any(), list()) -> any() | {error, any()}).
+-spec(call/5 :: (atom(), atom(), binary(), any(), list()) -> any() | {error, any()}).
 
 call(Pool, Key, Req) ->
-   ambitz_req:call(Pool, Key, Req, []).
+   ambitz_req:call(ambit, Pool, Key, Req, []).
    
 call(Pool, Key, Req, Opts) ->
-   ambitz_req:call(Pool, Key, Req, Opts).
+   ambitz_req:call(ambit, Pool, Key, Req, Opts).
+
+call(Ring, Pool, Key, Req, Opts) ->
+   ambitz_req:call(Ring, Pool, Key, Req, Opts).
 
 %%%----------------------------------------------------------------------------   
 %%%
@@ -123,6 +128,7 @@ call(Pool, Key, Req, Opts) ->
 %% create casual context for ambit entity
 -spec(entity/1 :: (binary()) -> entity()).
 -spec(entity/2 :: (binary(), any()) -> entity()).
+-spec(entity/3 :: (atom(), binary(), any()) -> entity()).
 
 entity(Key) ->
    #entity{key = Key}.
@@ -130,6 +136,8 @@ entity(Key) ->
 entity(Key, Service) ->
    #entity{key = Key, val = Service}.
 
+entity(Ring, Key, Service) ->
+   #entity{ring = Ring, key = Key, val = Service}.
 
 %%
 %% get casual context property
@@ -155,8 +163,8 @@ service(#entity{} = Ent, Service) ->
 spawn(Entity) ->
    ambitz:spawn(Entity, []).
 
-spawn(#entity{key = Key, vsn = Vsn}=Entity, Opts) ->
-   call(ambit_req_create, Key, {create, Entity#entity{vsn = uid:vclock(Vsn)}}, Opts).
+spawn(#entity{ring = Ring, key = Key, vsn = Vsn}=Entity, Opts) ->
+   call(Ring, ambit_req_create, Key, {create, Entity#entity{vsn = uid:vclock(Vsn)}}, Opts).
 
 %%
 %% free service on the cluster
@@ -168,8 +176,8 @@ spawn(#entity{key = Key, vsn = Vsn}=Entity, Opts) ->
 free(Entity) ->
    ambitz:free(Entity, []).
 
-free(#entity{key = Key, vsn = Vsn}=Entity, Opts) ->
-   call(ambit_req_remove, Key, {remove, Entity#entity{vsn = uid:vclock(Vsn)}}, Opts).
+free(#entity{ring = Ring, key = Key, vsn = Vsn}=Entity, Opts) ->
+   call(Ring, ambit_req_remove, Key, {remove, Entity#entity{vsn = uid:vclock(Vsn)}}, Opts).
 
 %%
 %% lookup service on the cluster
@@ -185,8 +193,8 @@ lookup(Key, Opts)
  when is_binary(Key) orelse is_integer(Key) ->
    ambitz:lookup(entity(Key), Opts);
 
-lookup(#entity{key = Key, vsn = Vsn}=Entity, Opts) ->
-   call(ambit_req_lookup, Key, {lookup, Entity#entity{vsn = uid:vclock(Vsn)}}, Opts).
+lookup(#entity{ring = Ring, key = Key, vsn = Vsn}=Entity, Opts) ->
+   call(Ring, ambit_req_lookup, Key, {lookup, Entity#entity{vsn = uid:vclock(Vsn)}}, Opts).
 
 
 

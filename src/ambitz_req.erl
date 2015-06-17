@@ -12,7 +12,7 @@
   ,active/3
 ]).
 -export([
-   call/4
+   call/5
   % ,cast/4
 ]).
 
@@ -44,8 +44,8 @@ ioctl(_, _) ->
 
 %%
 %% synchronous request to distributed actors
-call(Pool, Key, Req, Opts) ->
-   Peers = ek:successors(ambit, Key),
+call(Ring, Pool, Key, Req, Opts) ->
+   Peers = ek:successors(Ring, Key),
    do_call(Peers, Pool, {req, Peers, Key, Req, Opts}, Opts).
 
 do_call([{_, _, _, Peer} | Tail], Pool, Req, Opts) ->
