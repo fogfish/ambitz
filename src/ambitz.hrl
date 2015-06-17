@@ -13,9 +13,9 @@
 
 %%
 %% actor management application
--ifndef(CONFIG_RING).
--define(CONFIG_RING, ambit).
--endif.
+% -ifndef(CONFIG_RING).
+% -define(CONFIG_RING, ambit).
+% -endif.
 
 %% 
 %% logger macros

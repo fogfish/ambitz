@@ -12,13 +12,7 @@
 %%
 %%
 start(_Type, _Args) ->
-   case opts:val(ring, undefined, ambitz) of
-      undefined ->
-         {ok, self()};
-      Ring      ->
-         ek:seed(opts:val(seed, [], ambitz)),
-         ek:create(?CONFIG_RING, Ring)
-   end.
+   ek:seed(opts:val(seed, [], ambitz)).
 
 %%
 %%
