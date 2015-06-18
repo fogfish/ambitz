@@ -181,7 +181,7 @@ req_free(#{mod := Mod}) ->
 %%
 %% cast request to each peer 
 req_cast(Peers, Key, Req, #{mod := Mod, t := T, opts := Opts}=State) ->
-   Opts1 = case lists:keytake(tx, 1, Opts) of
+   Opts1 = case lists:keyfind(tx, 1, Opts) of
       false   ->
          [{tx, Mod:guid(Key)}|Opts];
       {tx, _} ->
