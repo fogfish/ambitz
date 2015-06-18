@@ -9,7 +9,8 @@
 -export([
    start_link/1,
    call/3,
-   call/4
+   call/4,
+   call/5
 ]).
 -export([
    entity/1
