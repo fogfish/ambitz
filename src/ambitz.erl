@@ -147,7 +147,7 @@ service(#entity{val = Service}) ->
    Service.
 
 %%
-%% get casual context property
+%% set casual context property
 -spec(service/2 :: (entity(), any()) -> entity()).
 
 service(#entity{} = Ent, Service) ->

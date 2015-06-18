@@ -48,10 +48,11 @@ call(Ring, Pool, Key, Req, Opts) ->
    Peers = ek:successors(Ring, Key),
    do_call(Peers, Pool, {req, Peers, Key, Req, Opts}, Opts).
 
-do_call([{_, _, _, Peer} | Tail], Pool, Req, Opts) ->
+do_call([Head | Tail], Pool, Req, Opts) ->
+   Peer = erlang:node( ek:vnode(peer, Head) ),
    case 
       %% @todo: remove deps to pq
-      pq:call({Pool, erlang:node(Peer)}, Req, opts:val(t, ?CONFIG_TIMEOUT_REQ, Opts))
+      pq:call({Pool, Peer}, Req, opts:val(t, ?CONFIG_TIMEOUT_REQ, Opts))
    of
       {error, ebusy} ->
          do_call(Tail, Pool, Req, Opts);
