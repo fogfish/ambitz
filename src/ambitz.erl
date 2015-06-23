@@ -16,8 +16,9 @@
    entity/1
   ,entity/2
   ,entity/3
-  ,service/1
-  ,service/2
+  % ,service/1
+  % ,service/2
+  % ,vnode/1
 ]).
 -export([
    spawn/1,
@@ -126,33 +127,54 @@ call(Ring, Pool, Key, Req, Opts) ->
 %%%----------------------------------------------------------------------------   
 
 %%
-%% create casual context for ambit entity
+%% create casual context
 -spec(entity/1 :: (binary()) -> entity()).
--spec(entity/2 :: (binary(), any()) -> entity()).
--spec(entity/3 :: (atom(), binary(), any()) -> entity()).
+% -spec(entity/2 :: (binary(), any()) -> entity()).
+% -spec(entity/3 :: (atom(), binary(), any()) -> entity()).
 
 entity(Key) ->
    #entity{key = Key}.
 
-entity(Key, Service) ->
-   #entity{key = Key, val = Service}.
+% entity(Key, Service) ->
+%    #entity{key = Key, val = Service}.
 
-entity(Ring, Key, Service) ->
-   #entity{ring = Ring, key = Key, val = Service}.
-
-%%
-%% get casual context property
--spec(service/1 :: (entity()) -> any() | undefined).
-
-service(#entity{val = Service}) ->
-   Service.
+% entity(Ring, Key, Service) ->
+%    #entity{ring = Ring, key = Key, val = Service}.
 
 %%
-%% set casual context property
--spec(service/2 :: (entity(), any()) -> entity()).
+%% get property of casual context
+-spec(entity/2 :: (atom(), entity()) -> any() | undefined).
 
-service(#entity{} = Ent, Service) ->
-   Ent#entity{val = Service}.
+entity(service, #entity{val = Service}) ->
+   Service;
+
+entity(vnode,   #entity{vnode = Vnode}) ->
+   Vnode.
+
+%%
+%% set property of casual context
+-spec(entity/3 :: (atom(), any(), entity()) -> entity()).
+
+entity(ring, Ring, Entity) ->
+   Entity#entity{ring = Ring};
+
+entity(service, Service, Entity) ->
+   Entity#entity{val  = Service}.
+
+
+% %%
+% %% get casual context property
+% -spec(service/1 :: (entity()) -> any() | undefined).
+
+% service(#entity{val = Service}) ->
+%    Service.
+
+% %%
+% %% set casual context property
+% -spec(service/2 :: (entity(), any()) -> entity()).
+
+% service(#entity{} = Ent, Service) ->
+%    Ent#entity{val = Service}.
 
 %%
 %% spawn service on the cluster
