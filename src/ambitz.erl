@@ -16,15 +16,14 @@
    entity/1
   ,entity/2
   ,entity/3
-  % ,service/1
-  % ,service/2
-  % ,vnode/1
 ]).
 -export([
    spawn/1,
    spawn/2,
    lookup/1,
    lookup/2,
+   whereis/1,
+   whereis/2,
    free/1,
    free/2
 ]).
@@ -129,24 +128,25 @@ call(Ring, Pool, Key, Req, Opts) ->
 %%
 %% create casual context
 -spec(entity/1 :: (binary()) -> entity()).
-% -spec(entity/2 :: (binary(), any()) -> entity()).
-% -spec(entity/3 :: (atom(), binary(), any()) -> entity()).
 
 entity(Key) ->
    #entity{key = Key}.
-
-% entity(Key, Service) ->
-%    #entity{key = Key, val = Service}.
-
-% entity(Ring, Key, Service) ->
-%    #entity{ring = Ring, key = Key, val = Service}.
 
 %%
 %% get property of casual context
 -spec(entity/2 :: (atom(), entity()) -> any() | undefined).
 
+entity(ring,    #entity{ring = Ring}) ->
+   Ring;
+
+entity(key,     #entity{key = Key}) ->
+   Key;
+
 entity(service, #entity{val = Service}) ->
    Service;
+
+entity(vsn,     #entity{vsn = Vsn}) ->
+   Vsn;
 
 entity(vnode,   #entity{vnode = Vnode}) ->
    Vnode.
@@ -160,21 +160,6 @@ entity(ring, Ring, Entity) ->
 
 entity(service, Service, Entity) ->
    Entity#entity{val  = Service}.
-
-
-% %%
-% %% get casual context property
-% -spec(service/1 :: (entity()) -> any() | undefined).
-
-% service(#entity{val = Service}) ->
-%    Service.
-
-% %%
-% %% set casual context property
-% -spec(service/2 :: (entity(), any()) -> entity()).
-
-% service(#entity{} = Ent, Service) ->
-%    Ent#entity{val = Service}.
 
 %%
 %% spawn service on the cluster
@@ -219,5 +204,21 @@ lookup(Key, Opts)
 lookup(#entity{ring = Ring, key = Key, vsn = Vsn}=Entity, Opts) ->
    call(Ring, ambit_req_lookup, Key, {lookup, Entity#entity{vsn = uid:vclock(Vsn)}}, Opts).
 
+%%
+%% lookup discover process id on the cluster
+%%  Options
+%%    r - number of succeeded reads
+-spec(whereis/1 :: (key() | entity()) -> entity() | {error, any()}).
+-spec(whereis/2 :: (key() | entity(), any()) -> entity() | {error, any()}).
+
+whereis(Key) ->
+   ambitz:whereis(Key, []).
+
+whereis(Key, Opts)
+ when is_binary(Key) orelse is_integer(Key) ->
+   ambitz:whereis(entity(Key), Opts);
+
+whereis(#entity{ring = Ring, key = Key, vsn = Vsn}=Entity, Opts) ->
+   call(Ring, ambit_req_whereis, Key, {process, Entity#entity{vsn = uid:vclock(Vsn)}}, Opts).
 
 

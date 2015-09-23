@@ -1,7 +1,7 @@
 {application, ambitz,
    [
       {description, "native api to distributed actors"},
-      {vsn,         "0.3.3"},
+      {vsn,         "0.3.4"},
       {modules,     []},
       {registered,  []},
       {applications,[
