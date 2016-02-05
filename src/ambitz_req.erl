@@ -216,6 +216,7 @@ req_commit(#{n := N, key := _Key, value := Value, opts := Opts, pipe := Pipe}=St
       {[{_Hash, {_Peers, Result}} | Head], Tail} ->
          ?DEBUG("[~p] result ~p ~p (~p)~n", [self(), _Key, Result, length(_Peers)]),
          pipe:ack(Pipe, Result),
+         % @todo: document read-repair option
          case opts:val(repair, undefined, Opts) of
             rr ->
                repair(Result, Head ++ Tail, State);

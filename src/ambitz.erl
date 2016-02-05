@@ -32,8 +32,14 @@
 %% data types
 -type(key()    :: binary()).
 -type(entity() :: #entity{}).
-%% @todo: define error types
 
+%% 
+%%  Common error reason
+%%   ebusy - cluster run out of compute capacity, i/o pools exhausted
+%%   unity - the quorum requirements of request is not achievable, 
+%%           the replicas are not agreeing on the status. 
+%%   [_]   - replica failure
+-type(reason() :: ebusy | unity | [_]).
 
 %%%----------------------------------------------------------------------------   
 %%%
@@ -110,9 +116,9 @@ start_link(Mod) ->
 
 %%
 %% request distributed actor
--spec(call/3 :: (atom(), binary(), any()) -> any() | {error, any()}).
--spec(call/4 :: (atom(), binary(), any(), list()) -> any() | {error, any()}).
--spec(call/5 :: (atom(), atom(), binary(), any(), list()) -> any() | {error, any()}).
+-spec(call/3 :: (atom(), binary(), any()) -> {ok, _} | {error, reason()}).
+-spec(call/4 :: (atom(), binary(), any(), list()) -> {ok, _} | {error, reason()}).
+-spec(call/5 :: (atom(), atom(), binary(), any(), list()) -> {ok, _} | {error, reason()}).
 
 call(Pool, Key, Req) ->
    ambitz_req:call(ambit, Pool, Key, Req, []).
@@ -169,8 +175,8 @@ entity(service, Service, Entity) ->
 %% spawn service on the cluster
 %%  Options
 %%    w - number of succeeded writes
--spec(spawn/1 :: (entity()) -> entity() | {error, any()}).
--spec(spawn/2 :: (entity(), list()) -> entity() | {error, any()}).
+-spec(spawn/1 :: (entity()) -> {ok, entity()} | {error, any()}).
+-spec(spawn/2 :: (entity(), list()) -> {ok, entity()} | {error, any()}).
 
 spawn(Entity) ->
    ambitz:spawn(Entity, []).
@@ -182,8 +188,8 @@ spawn(#entity{ring = Ring, key = Key, vsn = Vsn}=Entity, Opts) ->
 %% free service on the cluster
 %%  Options
 %%    w - number of succeeded writes
--spec(free/1 :: (entity()) -> entity() | {error, any()}).
--spec(free/2 :: (entity(), list()) -> entity() | {error, any()}).
+-spec(free/1 :: (entity()) -> {ok, entity()} | {error, any()}).
+-spec(free/2 :: (entity(), list()) -> {ok, entity()} | {error, any()}).
 
 free(Entity) ->
    ambitz:free(Entity, []).
@@ -195,8 +201,8 @@ free(#entity{ring = Ring, key = Key, vsn = Vsn}=Entity, Opts) ->
 %% lookup service on the cluster
 %%  Options
 %%    r - number of succeeded reads
--spec(lookup/1 :: (key() | entity()) -> entity() | {error, any()}).
--spec(lookup/2 :: (key() | entity(), any()) -> entity() | {error, any()}).
+-spec(lookup/1 :: (key() | entity()) -> {ok, entity()} | {error, any()}).
+-spec(lookup/2 :: (key() | entity(), any()) -> {ok, entity()} | {error, any()}).
 
 lookup(Key) ->
    ambitz:lookup(Key, []).
@@ -212,8 +218,8 @@ lookup(#entity{ring = Ring, key = Key, vsn = Vsn}=Entity, Opts) ->
 %% lookup discover process id on the cluster
 %%  Options
 %%    r - number of succeeded reads
--spec(whereis/1 :: (key() | entity()) -> entity() | {error, any()}).
--spec(whereis/2 :: (key() | entity(), any()) -> entity() | {error, any()}).
+-spec(whereis/1 :: (key() | entity()) -> {ok, entity()} | {error, any()}).
+-spec(whereis/2 :: (key() | entity(), any()) -> {ok, entity()} | {error, any()}).
 
 whereis(Key) ->
    ambitz:whereis(Key, []).
