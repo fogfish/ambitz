@@ -27,11 +27,12 @@
    free/1,
    free/2
 ]).
+-export_type([entity/0]).
 
 %%
 %% data types
--type(key()    :: binary()).
--type(entity() :: #entity{}).
+-type key()    :: binary().
+-type entity() :: #entity{}.
 
 %% 
 %%  Common error reason
@@ -39,7 +40,7 @@
 %%   unity - the quorum requirements of request is not achievable, 
 %%           the replicas are not agreeing on the status. 
 %%   [_]   - replica failure
--type(reason() :: ebusy | unity | [_]).
+-type reason() :: ebusy | unity | [_].
 
 %%%----------------------------------------------------------------------------   
 %%%
@@ -165,11 +166,14 @@ entity(vnode,   #entity{vnode = Vnode}) ->
 %% set property of casual context
 -spec(entity/3 :: (atom(), any(), entity()) -> entity()).
 
+%% define ring
 entity(ring, Ring, Entity) ->
    Entity#entity{ring = Ring};
 
-entity(service, Service, Entity) ->
+%% define service specification as {Module, Function, Unit}
+entity(service, {_, _, _} = Service, Entity) ->
    Entity#entity{val  = Service}.
+
 
 %%
 %% spawn service on the cluster
