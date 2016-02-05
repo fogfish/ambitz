@@ -28,8 +28,12 @@
    free/2
 ]).
 
+%%
+%% data types
 -type(key()    :: binary()).
 -type(entity() :: #entity{}).
+%% @todo: define error types
+
 
 %%%----------------------------------------------------------------------------   
 %%%
