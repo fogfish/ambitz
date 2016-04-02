@@ -143,6 +143,7 @@ call(Ring, Pool, Key, Req, Opts) ->
 entity(Key) ->
    #entity{key = Key}.
 
+
 %%
 %% get property of casual context
 -spec(entity/2 :: (atom(), entity()) -> any() | undefined).

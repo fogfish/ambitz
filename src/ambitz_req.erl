@@ -44,14 +44,15 @@ ioctl(_, _) ->
 
 %%
 %% synchronous request to distributed actors
+%% @todo: remove deps to pq
 call(Ring, Pool, Key, Req, Opts) ->
    Peers = ek:successors(Ring, Key),
    do_call(Peers, Pool, {req, Peers, Key, Req, Opts}, Opts).
 
 do_call([Head | Tail], Pool, Req, Opts) ->
    Peer = erlang:node( ek:vnode(peer, Head) ),
+   ?DEBUG("ambitz [req]: init to ~p with ~p", [Peer, Req]),
    case 
-      %% @todo: remove deps to pq
       pq:call({Pool, Peer}, Req, opts:val(t, ?CONFIG_TIMEOUT_REQ, Opts))
    of
       {error, ebusy} ->
@@ -94,7 +95,7 @@ do_call([], _Pool, _Req, _Opts) ->
 %%
 %%
 idle({req, Peers, Key, Req, Opts}, Pipe, #{mod := Mod}) ->
-   ?DEBUG("[~p] request ~p ~p", [self(), Key, Req]),
+   ?DEBUG("ambitz [req]: accept key ~p with ~p", [Key, Req]),
    case Mod:ensure(Peers, Key, Opts) of
       ok ->
          {next_state, active,
@@ -104,6 +105,7 @@ idle({req, Peers, Key, Req, Opts}, Pipe, #{mod := Mod}) ->
          };
 
       {error, Reason} ->
+         ?DEBUG("ambitz [req]: abort key ~p with ~p", [Key, Reason]),
          pipe:ack(Pipe, {error, [Reason]}),
          {next_state, idle, #{mod => Mod}}
    end.
@@ -183,12 +185,14 @@ req_free(#{mod := Mod}) ->
 req_cast(Peers, Key, Req, #{mod := Mod, t := T, opts := Opts}=State) ->
    Opts1 = case lists:keyfind(tx, 1, Opts) of
       false   ->
+         ?DEBUG("ambitz [req]: make uid for ~p", [Key]),
          [{tx, Mod:guid(Key)}|Opts];
       {tx, _} ->
          Opts
    end,
    List = lists:map(
       fun(Peer) ->
+         ?DEBUG("ambitz [req]: cast key ~p to ~p", [Key, Peer]),
          {Mod:monitor(Peer), Peer, Mod:cast(Peer, Key, Req, Opts1)}
       end,
       Peers
