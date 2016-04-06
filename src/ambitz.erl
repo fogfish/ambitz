@@ -177,6 +177,9 @@ entity(key,     #entity{key = Key}) ->
 entity(service, #entity{val = Service}) ->
    Service;
 
+entity(val,      #entity{val = Val}) ->
+   Val;
+
 entity(vsn,     #entity{vsn = Vsn}) ->
    Vsn;
 
@@ -193,7 +196,11 @@ entity(ring, Ring, Entity) ->
 
 %% define service specification as {Module, Function, Unit}
 entity(service, {_, _, _} = Service, Entity) ->
-   Entity#entity{val  = Service}.
+   Entity#entity{val  = Service};
+
+%% define value specification as opaque data structure
+entity(val, Val, Entity) ->
+   Entity#entity{val = Val}.
 
 
 %%
