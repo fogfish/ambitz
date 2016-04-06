@@ -1,3 +1,18 @@
+%%
+%%   Copyright 2014 Dmitry Kolesnikov, All Rights Reserved
+%%
+%%   Licensed under the Apache License, Version 2.0 (the "License");
+%%   you may not use this file except in compliance with the License.
+%%   You may obtain a copy of the License at
+%%
+%%       http://www.apache.org/licenses/LICENSE-2.0
+%%
+%%   Unless required by applicable law or agreed to in writing, software
+%%   distributed under the License is distributed on an "AS IS" BASIS,
+%%   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+%%   See the License for the specific language governing permissions and
+%%   limitations under the License.
+%%
 %% @doc
 %%   native api to distributed actors
 -module(ambitz).
@@ -7,7 +22,7 @@
 -export([behaviour_info/1]).
 -export([start/0]).
 -export([
-   start_link/1,
+   start_link/2,
    call/3,
    call/4,
    call/5
@@ -60,6 +75,7 @@ behaviour_info(callbacks) ->
 
       %%
       %% generate globally unique transaction id
+      %%
       %% -spec(guid/1 :: (any()) -> any()).
      ,{guid,     1}
 
@@ -70,7 +86,7 @@ behaviour_info(callbacks) ->
      ,{monitor, 1}
 
       %%
-      %% asynchronously cast request to transaction actor
+      %% asynchronously cast request to transaction handler / actor
       %%
       %% -spec(cast/4 :: (ek:vnode(), key(), req(), opts()) -> reference()). 
      ,{cast,    4} 
@@ -109,11 +125,15 @@ start() ->
    applib:boot(?MODULE, code:where_is_file("app.config")).
 
 %%
-%% start request coordinator process
--spec(start_link/1 :: (atom()) -> {ok, pid()} | {error, any()}).
+%% start pool of request coordinators, using module as pool identity
+-spec(start_link/2 :: (atom(), integer()) -> {ok, pid()} | {error, any()}).
 
-start_link(Mod) ->
-   ambitz_req:start_link(Mod).   
+start_link(Mod, Capacity) ->
+   pq:start_link(Mod, [
+      {capacity, Capacity}
+     ,{worker,   {ambitz_req_par, [Mod]}}
+   ]). 
+
 
 %%
 %% request distributed actor
@@ -122,13 +142,13 @@ start_link(Mod) ->
 -spec(call/5 :: (atom(), atom(), binary(), any(), list()) -> {ok, _} | {error, reason()}).
 
 call(Pool, Key, Req) ->
-   ambitz_req:call(ambit, Pool, Key, Req, []).
+   ambitz_req_par:call(ambit, Pool, Key, Req, []).
    
 call(Pool, Key, Req, Opts) ->
-   ambitz_req:call(ambit, Pool, Key, Req, Opts).
+   ambitz_req_par:call(ambit, Pool, Key, Req, Opts).
 
 call(Ring, Pool, Key, Req, Opts) ->
-   ambitz_req:call(Ring, Pool, Key, Req, Opts).
+   ambitz_req_par:call(Ring, Pool, Key, Req, Opts).
 
 %%%----------------------------------------------------------------------------   
 %%%

@@ -1,216 +1,142 @@
-%% @description
-%%   generic request coordinator
+%%
+%%   Copyright 2014 Dmitry Kolesnikov, All Rights Reserved
+%%
+%%   Licensed under the Apache License, Version 2.0 (the "License");
+%%   you may not use this file except in compliance with the License.
+%%   You may obtain a copy of the License at
+%%
+%%       http://www.apache.org/licenses/LICENSE-2.0
+%%
+%%   Unless required by applicable law or agreed to in writing, software
+%%   distributed under the License is distributed on an "AS IS" BASIS,
+%%   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+%%   See the License for the specific language governing permissions and
+%%   limitations under the License.
+%%
+%% @doc
+%%   request data structure
 -module(ambitz_req).
 -include("ambitz.hrl").
+-include("include/ambitz.hrl").
 
 -export([
-   start_link/1
-  ,init/1
-  ,free/2
-  ,ioctl/2
-  ,idle/3
-  ,active/3
-]).
--export([
-   call/5
-  % ,cast/4
+   new/4,
+   free/1,
+   coordinate/3,
+   ensure/1,
+   cast/1,
+   propose/3,   
+   commit/1
 ]).
 
-%%%----------------------------------------------------------------------------   
-%%%
-%%% Factory
-%%%
-%%%----------------------------------------------------------------------------   
-
-start_link(Mod) ->
-   pipe:start_link(?MODULE, [Mod], []).
-
-init([Mod]) ->
-   lager:md([{ambit, req}]),
-   {ok, idle, #{mod => Mod}}.
-
-free(_, _) ->
-   ok.
-
-ioctl(_, _) ->
-   throw(not_implemented).
-
-
-%%%----------------------------------------------------------------------------   
-%%%
-%%% api
-%%%
-%%%----------------------------------------------------------------------------   
 
 %%
-%% synchronous request to distributed actors
-%% @todo: remove deps to pq
-call(Ring, Pool, Key, Req, Opts) ->
-   Peers = ek:successors(Ring, Key),
-   do_call(Peers, Pool, {req, Peers, Key, Req, Opts}, Opts).
-
-do_call([Head | Tail], Pool, Req, Opts) ->
-   Peer = erlang:node( ek:vnode(peer, Head) ),
-   ?DEBUG("ambitz [req]: init to ~p with ~p", [Peer, Req]),
-   case 
-      pq:call({Pool, Peer}, Req, opts:val(t, ?CONFIG_TIMEOUT_REQ, Opts))
-   of
-      {error, ebusy} ->
-         do_call(Tail, Pool, Req, Opts);
-      Result ->
-         Result
-   end;
-
-do_call([], _Pool, _Req, _Opts) ->
-   {error, ebusy}.
-
-% %%
-% %% asynchronous request to distributed actors
-% cast(Mod, Key, Req, Opts) ->
-%    cast(ek:successors(ambit, Key), Mod, Key, Req, Opts).
-% %%
-% %%
-% cast([Vnode | T], Mod, Key, Req, Opts) ->
-%    %% @todo: fucking major bottneck
-%    %% @todo: lease involves extra RTT to service,
-%    %%         design pq / peer api to mitigate the issue
-%    case Mod:lease(Vnode) of
-%       {error, _} ->
-%          cast(T, Mod, Key, Req, Opts);
-%       UoW ->
-%          pipe:cast(pq:pid(UoW), 
-%             {req, UoW, Key, Req, Opts}
-%          )
-%    end;
-
-% cast([], _Mod, _Key, _Req, _Opts) ->
-%    {error, ebusy}.
-
-%%%----------------------------------------------------------------------------   
-%%%
-%%% pipe
-%%%
-%%%----------------------------------------------------------------------------   
-
-%%
-%%
-idle({req, Peers, Key, Req, Opts}, Pipe, #{mod := Mod}) ->
-   ?DEBUG("ambitz [req]: accept key ~p with ~p", [Key, Req]),
-   case Mod:ensure(Peers, Key, Opts) of
-      ok ->
-         {next_state, active,
-            req_cast(Peers, Key, Req,
-               req_new(Mod, Pipe, Opts)
-            )
-         };
-
-      {error, Reason} ->
-         ?DEBUG("ambitz [req]: abort key ~p with ~p", [Key, Reason]),
-         pipe:ack(Pipe, {error, [Reason]}),
-         {next_state, idle, #{mod => Mod}}
-   end.
-
-
-%% 
-%%
-active({Tx, Value}, _Pipe, {List, Req0}) ->
-   case lists:keytake(Tx, 3, List) of
-      {value, {Ref, Peer, Tx},   []} ->
-         erlang:demonitor(Ref, [flush]),
-         {next_state, idle, 
-            req_free(
-               req_commit(
-                  req_accept(Value, Peer, Req0)
-               )
-            )
-         };
-      {value, {Ref, Peer, Tx}, Tail} ->
-         erlang:demonitor(Ref, [flush]),
-         {next_state, active, 
-            {Tail, req_accept(Value, Peer, Req0)}
-         }
-   end;
-
-active({'DOWN', Ref, _, _, _Reason}, _Pipe,  {List, Req0}) ->
-   case lists:keytake(Ref, 1, List) of
-      {value, {Ref, Peer, _Tx},   []} ->
-         {next_state, idle, 
-            req_free(
-               req_commit(
-                  req_accept({error, abort},  Peer, Req0)
-               )
-            )
-         };
-      {value, {Ref, Peer, _Tx}, Tail} ->
-         {next_state, active,
-            {Tail, req_accept({error, abort}, Peer, Req0)}
-         }
-   end;
-
-active(timeout, _Pipe, {_, Req0}) ->
-   {next_state, idle, 
-      req_free(
-         req_commit(
-            req_accept({error, timeout}, undefined, Req0)
-         )
-      )
-   }.
-
-
-%%%----------------------------------------------------------------------------   
-%%%
-%%% private
-%%%
-%%%----------------------------------------------------------------------------   
-
-%%
-%% initialize empty multi-cast request
-req_new(Mod, Pipe, Opts) ->
-   #{
-      mod   => Mod,
-      pipe  => Pipe,
-      n     => opts:val(r, opts:val(w, ?CONFIG_W, Opts), Opts),
-      t     => opts:val(t, ?CONFIG_TIMEOUT_REQ, Opts),
-      opts  => Opts,
-      value => orddict:new()
+%% create new request
+new(Ring, Key, Req, Opts) ->
+   #request{
+      peer    = ek:successors(Ring, Key),
+      key     = Key,
+      uid     = opts:val(tx, undefined, Opts),
+      req     = Req,
+      n       = opts:val(r, opts:val(w, ?CONFIG_W, Opts), Opts),
+      t       = opts:val(t, ?CONFIG_TIMEOUT_REQ, Opts),
+      commit  = opts:val(commit, undefined, Opts)
    }.
 
 %%
 %%
-req_free(#{mod := Mod}) ->
-   #{mod => Mod}.
+free(_) ->
+   undefined.
+
+%%
+%% bind request with coordinator process
+coordinate(Mod, Pipe, #request{uid = undefined, key = Key} = Request) ->
+   Request#request{
+      uid   = Mod:guid(Key),
+      mod   = Mod,
+      pipe  = Pipe,
+      value = orddict:new()
+   };
+
+coordinate(Mod, Pipe, #request{} = Request) ->
+   Request#request{
+      mod   = Mod,
+      pipe  = Pipe,
+      value = orddict:new()
+   }.
+
+%%
+%% ensure presence of actor in the cluster
+ensure(#request{peer = Peer, key = Key, mod = Mod}) ->
+   %% @todo: [] kept for api compatibility
+   Mod:ensure(Peer, Key, []).
 
 %%
 %% cast request to each peer 
-req_cast(Peers, Key, Req, #{mod := Mod, t := T, opts := Opts}=State) ->
-   Opts1 = case lists:keyfind(tx, 1, Opts) of
-      false   ->
-         ?DEBUG("ambitz [req]: make uid for ~p", [Key]),
-         [{tx, Mod:guid(Key)}|Opts];
-      {tx, _} ->
-         Opts
-   end,
-   List = lists:map(
-      fun(Peer) ->
-         ?DEBUG("ambitz [req]: cast key ~p to ~p", [Key, Peer]),
-         {Mod:monitor(Peer), Peer, Mod:cast(Peer, Key, Req, Opts1)}
+cast(#request{peer = Peer, key = Key, req = Req, mod = Mod, t = T} = Request) ->
+   TxList = lists:map(
+      fun(Px) ->
+         ?DEBUG("ambitz [req]: cast, key ~p, peer ~p", [Key, Px]),
+         %% @todo: [] kept for api compatibility
+         {Mod:monitor(Px), Px, Mod:cast(Px, Key, Req, [])}
       end,
-      Peers
+      Peer
    ),
-   {List, State#{key => Key, req => Req, t => tempus:timer(timeout, T)}}.
+   Request#request{
+      tx = TxList,
+      t  = tempus:timer(timeout, T)
+   }.
 
 %%
-%% accept vs merge
-req_accept(Value, Peer, #{mod := Mod, key := _Key, value := Value0}=State) ->
-   %% @todo: we need order rules
+%% propose tx / peer value 
+propose(Tx, {error, peerdown} = Value, Request) ->
+   propose(1, Tx, Value, Request);
+
+propose(Tx, Value, Request) ->
+   propose(3, Tx, Value, Request).
+
+propose(I, Tx, Value, #request{tx = TxList, n = N} = Request0) ->
+   {value, {Ref, Peer, Tx}, Tail} = lists:keytake(Tx, I, TxList),
+   erlang:demonitor(Ref, [flush]),
+   case {length(Tail), accept(Value, Peer, Request0)} of
+      %% each peer proposed the value
+      {0, {_, Request1}} ->
+         {eof, Request1#request{tx = Tail}};
+
+      %% accepted value meet sloppy quorum criteria
+      {_,  {X, Request1}} when X >= N ->
+         {eoq, Request1#request{tx = Tail}};
+      
+      %% no quorum yet, wait for other peers
+      {_,  {_, Request1}} ->
+         {run, Request1#request{tx = Tail}}
+   end.
+
+%%
+%% accept proposed result 
+%% @todo: we need to order result based on peer, agreements, etc.
+accept(Value, Peer, #request{mod = Mod, key = _Key, value = Value0}=Req) ->
    {Hash, Unit} = Mod:unit(Value),
-   Value1 = orddict:update(Hash, fun({List, Acc}) -> {[Peer | List], Mod:join(Unit, Acc)} end, {[Peer], Unit}, Value0),
-   ?DEBUG("[~p] accept ~p ~p", [self(), _Key, Unit]),
-   State#{value => Value1}.
+   Value1 = orddict:update(Hash, 
+      fun({List, Acc}) -> 
+         {[Peer | List], Mod:join(Unit, Acc)}
+      end, 
+      {[Peer], Unit}, 
+      Value0
+   ),
+   {List, _} = orddict:fetch(Hash, Value1),
+   N = length(List),
+   ?DEBUG("ambitz [req]: accept, key ~p (~p), coord ~p, peer ~p", [_Key, N, erlang:node(), Peer]),
+   {N, Req#request{value = Value1}}.
+
+
 
 %%
 %%
-req_commit(#{n := N, key := _Key, value := Value, opts := Opts, pipe := Pipe}=State) ->
+commit(#request{pipe = undefined} = Request) ->
+   Request;
+
+commit(#request{key = _Key, value = Value, n = N, pipe = Pipe}=Request) ->
    case
       lists:partition(
          fun({_, {List, _Val}}) -> length(List) >= N end, 
@@ -220,26 +146,25 @@ req_commit(#{n := N, key := _Key, value := Value, opts := Opts, pipe := Pipe}=St
       {[{_Hash, {_Peers, Result}} | Head], Tail} ->
          ?DEBUG("[~p] result ~p ~p (~p)~n", [self(), _Key, Result, length(_Peers)]),
          pipe:ack(Pipe, Result),
-         % @todo: document read-repair option
-         case opts:val(repair, undefined, Opts) of
-            rr ->
-               repair(Result, Head ++ Tail, State);
-            _  ->
-               ok
-         end,
-         State;
+         req_post_commit(Result, Head ++ Tail, Request),
+         Request#request{pipe = undefined};
       
       {[], _} ->
          pipe:ack(Pipe, {error, unity}),
-         State
+         Request#request{pipe = undefined}
    end.
 
-repair({error, _}, _Peers, _State) ->
+%%
+%%
+req_post_commit(_Value, _Peer, #request{commit = undefined}) ->
    ok;
-repair(_, [], _State) ->
+
+req_post_commit({error, _}, _Peer, #request{commit = repair}) ->
    ok;
-repair(Result, Peers, #{mod := Mod, key := Key, req := Req}) ->
-   Mod:repair(lists:flatten([X || {_, {X, _}} <- Peers]), Key, Req, Result).
+req_post_commit(_Value,  [], #request{commit = repair}) ->
+   ok;
+req_post_commit(Value, Peer, #request{commit = repair, mod = Mod, key = Key, req = Req}) ->
+   Mod:repair(lists:flatten([X || {_, {X, _}} <- Peer]), Key, Req, Value).
 
 %%
 %%
