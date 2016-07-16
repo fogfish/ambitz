@@ -126,7 +126,7 @@ start() ->
 
 %%
 %% start pool of request coordinators, using module as pool identity
--spec(start_link/2 :: (atom(), integer()) -> {ok, pid()} | {error, any()}).
+-spec start_link(atom(), integer()) -> {ok, pid()} | {error, any()}.
 
 start_link(Mod, Capacity) ->
    pq:start_link(Mod, [
@@ -137,9 +137,9 @@ start_link(Mod, Capacity) ->
 
 %%
 %% request distributed actor
--spec(call/3 :: (atom(), binary(), any()) -> {ok, _} | {error, reason()}).
--spec(call/4 :: (atom(), binary(), any(), list()) -> {ok, _} | {error, reason()}).
--spec(call/5 :: (atom(), atom(), binary(), any(), list()) -> {ok, _} | {error, reason()}).
+-spec call(atom(), binary(), any()) -> {ok, _} | {error, reason()}.
+-spec call(atom(), binary(), any(), list()) -> {ok, _} | {error, reason()}.
+-spec call(atom(), atom(), binary(), any(), list()) -> {ok, _} | {error, reason()}.
 
 call(Pool, Key, Req) ->
    ambitz_req_par:call(ambit, Pool, Key, Req, []).
@@ -158,7 +158,7 @@ call(Ring, Pool, Key, Req, Opts) ->
 
 %%
 %% create casual context
--spec(entity/1 :: (binary()) -> entity()).
+-spec entity(binary()) -> entity().
 
 entity(Key) ->
    #entity{key = Key}.
@@ -166,7 +166,7 @@ entity(Key) ->
 
 %%
 %% get property of casual context
--spec(entity/2 :: (atom(), entity()) -> any() | undefined).
+-spec entity(atom(), entity()) -> _.
 
 entity(ring,    #entity{ring = Ring}) ->
    Ring;
@@ -188,7 +188,7 @@ entity(vnode,   #entity{vnode = Vnode}) ->
 
 %%
 %% set property of casual context
--spec(entity/3 :: (atom(), any(), entity()) -> entity()).
+-spec entity(atom(), _, entity()) -> entity().
 
 %% define ring
 entity(ring, Ring, Entity) ->
@@ -207,8 +207,8 @@ entity(val, Val, Entity) ->
 %% spawn service on the cluster
 %%  Options
 %%    w - number of succeeded writes
--spec(spawn/1 :: (entity()) -> {ok, entity()} | {error, any()}).
--spec(spawn/2 :: (entity(), list()) -> {ok, entity()} | {error, any()}).
+-spec spawn(entity()) -> {ok, entity()} | {error, any()}.
+-spec spawn(entity(), list()) -> {ok, entity()} | {error, any()}.
 
 spawn(Entity) ->
    ambitz:spawn(Entity, []).
@@ -220,8 +220,8 @@ spawn(#entity{ring = Ring, key = Key, vsn = Vsn}=Entity, Opts) ->
 %% free service on the cluster
 %%  Options
 %%    w - number of succeeded writes
--spec(free/1 :: (entity()) -> {ok, entity()} | {error, any()}).
--spec(free/2 :: (entity(), list()) -> {ok, entity()} | {error, any()}).
+-spec free(entity()) -> {ok, entity()} | {error, any()}.
+-spec free(entity(), list()) -> {ok, entity()} | {error, any()}.
 
 free(Entity) ->
    ambitz:free(Entity, []).
@@ -233,8 +233,8 @@ free(#entity{ring = Ring, key = Key, vsn = Vsn}=Entity, Opts) ->
 %% lookup service on the cluster
 %%  Options
 %%    r - number of succeeded reads
--spec(lookup/1 :: (key() | entity()) -> {ok, entity()} | {error, any()}).
--spec(lookup/2 :: (key() | entity(), any()) -> {ok, entity()} | {error, any()}).
+-spec lookup(key() | entity()) -> {ok, entity()} | {error, any()}.
+-spec lookup(key() | entity(), any()) -> {ok, entity()} | {error, any()}.
 
 lookup(Key) ->
    ambitz:lookup(Key, []).
@@ -250,8 +250,8 @@ lookup(#entity{ring = Ring, key = Key, vsn = Vsn}=Entity, Opts) ->
 %% lookup discover process id on the cluster
 %%  Options
 %%    r - number of succeeded reads
--spec(whereis/1 :: (key() | entity()) -> {ok, entity()} | {error, any()}).
--spec(whereis/2 :: (key() | entity(), any()) -> {ok, entity()} | {error, any()}).
+-spec whereis(key() | entity()) -> {ok, entity()} | {error, any()}.
+-spec whereis(key() | entity(), any()) -> {ok, entity()} | {error, any()}.
 
 whereis(Key) ->
    ambitz:whereis(Key, []).
