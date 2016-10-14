@@ -39,6 +39,8 @@
    lookup/2,
    whereis/1,
    whereis/2,
+   call/1,
+   call/2,
    free/1,
    free/2
 ]).
@@ -214,7 +216,7 @@ spawn(Entity) ->
    ambitz:spawn(Entity, []).
 
 spawn(#entity{ring = Ring, key = Key, vsn = Vsn}=Entity, Opts) ->
-   call(Ring, ambit_req_create, Key, {create, Entity#entity{vsn = uid:vclock(Vsn)}}, Opts).
+   call(Ring, ambit_req_create, Key, {'$ambitz', spawn, Entity#entity{vsn = uid:vclock(Vsn)}}, Opts).
 
 %%
 %% free service on the cluster
@@ -227,7 +229,18 @@ free(Entity) ->
    ambitz:free(Entity, []).
 
 free(#entity{ring = Ring, key = Key, vsn = Vsn}=Entity, Opts) ->
-   call(Ring, ambit_req_remove, Key, {remove, Entity#entity{vsn = uid:vclock(Vsn)}}, Opts).
+   call(Ring, ambit_req_remove, Key, {'$ambitz', free, Entity#entity{vsn = uid:vclock(Vsn)}}, Opts).
+
+%%
+%% call service on the cluster
+%%  Options
+%%    w - number of succeeded writes
+call(Entity) ->
+   ambitz:call(Entity, []).
+
+call(#entity{ring = Ring, key = Key, vsn = Vsn}=Entity, Opts) ->
+   call(Ring, ambit_req_call, Key, {'$ambitz', call, Entity#entity{vsn = uid:vclock(Vsn)}}, Opts).
+
 
 %%
 %% lookup service on the cluster
@@ -244,10 +257,10 @@ lookup(Key, Opts)
    ambitz:lookup(entity(Key), Opts);
 
 lookup(#entity{ring = Ring, key = Key, vsn = Vsn}=Entity, Opts) ->
-   call(Ring, ambit_req_lookup, Key, {lookup, Entity#entity{vsn = uid:vclock(Vsn)}}, Opts).
+   call(Ring, ambit_req_lookup, Key, {'$ambitz', lookup, Entity#entity{vsn = uid:vclock(Vsn)}}, Opts).
 
 %%
-%% lookup discover process id on the cluster
+%% lookup, discover process id on the cluster
 %%  Options
 %%    r - number of succeeded reads
 -spec whereis(key() | entity()) -> {ok, entity()} | {error, any()}.
@@ -261,6 +274,6 @@ whereis(Key, Opts)
    ambitz:whereis(entity(Key), Opts);
 
 whereis(#entity{ring = Ring, key = Key, vsn = Vsn}=Entity, Opts) ->
-   call(Ring, ambit_req_whereis, Key, {process, Entity#entity{vsn = uid:vclock(Vsn)}}, Opts).
+   call(Ring, ambit_req_whereis, Key, {'$ambitz', whereis, Entity#entity{vsn = uid:vclock(Vsn)}}, Opts).
 
 
