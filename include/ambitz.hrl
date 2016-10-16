@@ -17,11 +17,11 @@
 %%
 %% ambit entity
 -record(entity, {
-   ring  = ambit     :: atom(),         %% entity ring
-   key   = undefined :: binary(),       %% entity key
-   val   = undefined :: any(),          %% entity val
-   vsn   = []        :: uid:vclock(),   %% entity dotted version
-   vnode = []        :: [ek:vnode()]    %% list of vnode
+   type  = undefined :: atom(),         %% data type
+   ring  = ambit     :: atom(),         %% unique identity of ring
+   key   = undefined :: binary(),       %% unique identity of actor
+   val   = undefined :: any(),          %% commutativity replicated data type
+   vnode = []        :: [ek:vnode()]    %% list of v-node
 }).
 
 %%

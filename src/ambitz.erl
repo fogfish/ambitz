@@ -28,9 +28,17 @@
    call/5
 ]).
 -export([
-   entity/1
-  ,entity/2
-  ,entity/3
+   new/2
+  ,put/2
+  ,put/3
+  ,get/1
+  ,get/2
+  ,descend/2
+  ,merge/2
+  ,key/1
+  ,vnode/1
+  ,ring/1
+  ,ring/2
 ]).
 -export([
    spawn/1,
@@ -39,8 +47,8 @@
    lookup/2,
    whereis/1,
    whereis/2,
-   call/1,
-   call/2,
+   ioctl/2,
+   ioctl/3,
    free/1,
    free/2
 ]).
@@ -117,6 +125,96 @@ behaviour_info(_) ->
 
 %%%----------------------------------------------------------------------------   
 %%%
+%%% commutativity replicated data type (CRDT)
+%%%
+%%%----------------------------------------------------------------------------   
+
+%%
+%% http://hal.upmc.fr/file/index/docid/555588/filename/techreport.pdf
+
+%% 
+%% create new data type instance
+-spec new(key(), atom()) -> entity().
+
+new(gcounter, Key) ->
+   new(ambitz_crdt_gcounter, Key);
+
+new(lww_register, Key) ->
+   new(ambitz_crdt_lwwregister, Key);
+
+new(gset, Key) ->
+   new(ambitz_crdt_gset, Key);
+
+new(CRDT, Key) ->
+   #entity{type = CRDT, key = Key, val = CRDT:new()}.   
+
+%%
+%% update operation of data type
+-spec put(_, entity()) -> entity().
+-spec put(_, _, entity()) -> entity().
+
+put(X, #entity{} = Entity) ->
+   ambitz:put(undefined, X, Entity).
+
+put(Lens, X, #entity{type = CRDT, val = Val} = Entity) ->
+   Entity#entity{val = CRDT:put(Lens, X, Val)}.
+
+%%
+%% query local state of data type
+-spec get(entity()) -> _.
+-spec get(_, entity()) -> _.
+
+get(#entity{} = Entity) ->
+   ambitz:get(undefined, Entity).
+
+get(Lens, #entity{type = CRDT, val = Val}) ->
+   CRDT:get(Lens, Val).
+
+%%
+%% compare values, return if A =< B in semi-lattice
+-spec descend(entity(), entity()) -> true | false.
+
+descend(#entity{type = CRDT, val = A}, #entity{type = CRDT, val = B}) ->
+   CRDT:descend(A, B).
+
+%%
+%% merges two value(s)
+-spec merge(entity(), entity()) -> entity().
+
+merge(#entity{type = CRDT, val = A} = Entity, #entity{type = CRDT, val = B}) ->
+   Entity#entity{val = CRDT:merge(A, B)}.
+
+%%
+%%
+-spec key(entity()) -> _.
+
+key(#entity{key = Key}) ->
+   Key.
+
+%%
+%%
+-spec vnode(entity()) -> [ek:vnode()].
+
+vnode(#entity{vnode = Vnode}) ->
+   Vnode.
+
+%%
+%%
+-spec ring(entity()) -> atom().
+
+ring(#entity{ring = Ring}) ->
+   Ring.
+
+%%
+%%
+-spec ring(atom(), entity()) -> entity().
+
+ring(Ring, #entity{} = Entity) ->
+   Entity#entity{ring = Ring}.   
+
+
+%%%----------------------------------------------------------------------------   
+%%%
 %%% request coordinator interface
 %%%
 %%%----------------------------------------------------------------------------   
@@ -159,121 +257,68 @@ call(Ring, Pool, Key, Req, Opts) ->
 %%%----------------------------------------------------------------------------   
 
 %%
-%% create casual context
--spec entity(binary()) -> entity().
-
-entity(Key) ->
-   #entity{key = Key}.
-
-
-%%
-%% get property of casual context
--spec entity(atom(), entity()) -> _.
-
-entity(ring,    #entity{ring = Ring}) ->
-   Ring;
-
-entity(key,     #entity{key = Key}) ->
-   Key;
-
-entity(service, #entity{val = Service}) ->
-   Service;
-
-entity(val,      #entity{val = Val}) ->
-   Val;
-
-entity(vsn,     #entity{vsn = Vsn}) ->
-   Vsn;
-
-entity(vnode,   #entity{vnode = Vnode}) ->
-   Vnode.
-
-%%
-%% set property of casual context
--spec entity(atom(), _, entity()) -> entity().
-
-%% define ring
-entity(ring, Ring, Entity) ->
-   Entity#entity{ring = Ring};
-
-%% define service specification as {Module, Function, Unit}
-entity(service, {_, _, _} = Service, Entity) ->
-   Entity#entity{val  = Service};
-
-%% define value specification as opaque data structure
-entity(val, Val, Entity) ->
-   Entity#entity{val = Val}.
-
-
-%%
 %% spawn service on the cluster
-%%  Options
-%%    w - number of succeeded writes
--spec spawn(entity()) -> {ok, entity()} | {error, any()}.
--spec spawn(entity(), list()) -> {ok, entity()} | {error, any()}.
+-spec spawn(entity()) -> {ok, entity()}.
+-spec spawn(entity(), [_]) -> {ok, entity()}.
 
 spawn(Entity) ->
    ambitz:spawn(Entity, []).
 
-spawn(#entity{ring = Ring, key = Key, vsn = Vsn}=Entity, Opts) ->
-   call(Ring, ambit_req_create, Key, {'$ambitz', spawn, Entity#entity{vsn = uid:vclock(Vsn)}}, Opts).
+spawn(#entity{ring = Ring, key = Key}=Entity, Opts) ->
+   call(Ring, ambit_req_create, Key, {'$ambitz', spawn, Entity}, Opts).
 
 %%
-%% free service on the cluster
-%%  Options
-%%    w - number of succeeded writes
--spec free(entity()) -> {ok, entity()} | {error, any()}.
--spec free(entity(), list()) -> {ok, entity()} | {error, any()}.
+%% terminate (free) service in the cluster
+-spec free(entity()) -> {ok, entity()}.
+-spec free(entity(), [_]) -> {ok, entity()}.
 
 free(Entity) ->
    ambitz:free(Entity, []).
 
-free(#entity{ring = Ring, key = Key, vsn = Vsn}=Entity, Opts) ->
-   call(Ring, ambit_req_remove, Key, {'$ambitz', free, Entity#entity{vsn = uid:vclock(Vsn)}}, Opts).
-
-%%
-%% call service on the cluster
-%%  Options
-%%    w - number of succeeded writes
-call(Entity) ->
-   ambitz:call(Entity, []).
-
-call(#entity{ring = Ring, key = Key, vsn = Vsn}=Entity, Opts) ->
-   call(Ring, ambit_req_call, Key, {'$ambitz', call, Entity#entity{vsn = uid:vclock(Vsn)}}, Opts).
+free(#entity{ring = Ring, key = Key}=Entity, Opts) ->
+   call(Ring, ambit_req_remove, Key, {'$ambitz', free, Entity}, Opts).
 
 
 %%
 %% lookup service on the cluster
-%%  Options
-%%    r - number of succeeded reads
--spec lookup(key() | entity()) -> {ok, entity()} | {error, any()}.
--spec lookup(key() | entity(), any()) -> {ok, entity()} | {error, any()}.
+-spec lookup(key() | entity()) -> {ok, entity()}.
+-spec lookup(key() | entity(), [_]) -> {ok, entity()}.
 
 lookup(Key) ->
    ambitz:lookup(Key, []).
 
-lookup(Key, Opts)
- when is_binary(Key) orelse is_integer(Key) ->
-   ambitz:lookup(entity(Key), Opts);
+lookup(#entity{ring = Ring, key = Key}=Entity, Opts) ->
+   call(Ring, ambit_req_lookup, Key, {'$ambitz', lookup, Entity}, Opts);
 
-lookup(#entity{ring = Ring, key = Key, vsn = Vsn}=Entity, Opts) ->
-   call(Ring, ambit_req_lookup, Key, {'$ambitz', lookup, Entity#entity{vsn = uid:vclock(Vsn)}}, Opts).
+lookup(Key, Opts) ->
+   ambitz:lookup(#entity{key = Key}, Opts).
 
 %%
-%% lookup, discover process id on the cluster
-%%  Options
-%%    r - number of succeeded reads
--spec whereis(key() | entity()) -> {ok, entity()} | {error, any()}.
--spec whereis(key() | entity(), any()) -> {ok, entity()} | {error, any()}.
+%% discover service processes on the cluster
+-spec whereis(key() | entity()) -> {ok, entity()}.
+-spec whereis(key() | entity(), [_]) -> {ok, entity()}.
 
 whereis(Key) ->
    ambitz:whereis(Key, []).
 
-whereis(Key, Opts)
- when is_binary(Key) orelse is_integer(Key) ->
-   ambitz:whereis(entity(Key), Opts);
+whereis(#entity{ring = Ring, key = Key}=Entity, Opts) ->
+   call(Ring, ambit_req_whereis, Key, {'$ambitz', whereis, Entity}, Opts);
 
-whereis(#entity{ring = Ring, key = Key, vsn = Vsn}=Entity, Opts) ->
-   call(Ring, ambit_req_whereis, Key, {'$ambitz', whereis, Entity#entity{vsn = uid:vclock(Vsn)}}, Opts).
+whereis(Key, Opts) ->
+   ambitz:whereis(#entity{key = Key}, Opts).
+
+%%
+%% configure service processes
+-spec ioctl(_, key() | entity()) -> {ok, entity()}.
+-spec ioctl(_, key() | entity(), [_]) -> {ok, entity()}.
+
+ioctl(Lens, Entity) ->
+   ambitz:ioctl(Lens, Entity, []).
+
+ioctl(Lens, #entity{ring = Ring, key = Key}=Entity, Opts) ->
+   call(Ring, ambit_req_ioctl, Key, {'$ambitz', ioctl, {Lens, Entity}}, Opts);
+
+ioctl(Lens, Key, Opts) ->
+   ambitz:ioctl(Lens, #entity{key = Key}, Opts).
 
 
