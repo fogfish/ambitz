@@ -42,6 +42,8 @@
   ,ring/2
 ]).
 -export([
+   actor/1,
+   actor/2,
    spawn/1,
    spawn/2,
    lookup/1,
@@ -53,11 +55,13 @@
    free/1,
    free/2
 ]).
+
 -export_type([entity/0]).
 
 %%
 %% data types
 -type key()    :: binary().
+-type spec()   :: mfa().
 -type entity() :: #entity{}.
 
 %% 
@@ -266,7 +270,18 @@ call(Ring, Pool, Key, Req, Opts) ->
 %%%----------------------------------------------------------------------------   
 
 %%
-%% spawn service on the cluster
+%% create actor specification
+-spec actor(key()) -> entity().
+-spec actor(key(), spec()) -> entity().
+
+actor(Key) ->
+   ambitz:new(lww_register, Key).
+
+actor(Key, {_, _, _} = Spec) ->
+   ambitz:put(Spec, actor(Key)).
+
+%%
+%% spawn actor on the cluster
 -spec spawn(entity()) -> {ok, entity()}.
 -spec spawn(entity(), [_]) -> {ok, entity()}.
 
@@ -277,7 +292,7 @@ spawn(#entity{ring = Ring, key = Key}=Entity, Opts) ->
    call(Ring, ambit_req_create, Key, {'$ambitz', spawn, Entity}, Opts).
 
 %%
-%% terminate (free) service in the cluster
+%% terminate (free) actor on the cluster
 -spec free(entity()) -> {ok, entity()}.
 -spec free(entity(), [_]) -> {ok, entity()}.
 
@@ -289,45 +304,36 @@ free(#entity{ring = Ring, key = Key}=Entity, Opts) ->
 
 
 %%
-%% lookup service on the cluster
--spec lookup(key() | entity()) -> {ok, entity()}.
--spec lookup(key() | entity(), [_]) -> {ok, entity()}.
+%% lookup actor on the cluster
+-spec lookup(entity()) -> {ok, entity()}.
+-spec lookup(entity(), [_]) -> {ok, entity()}.
 
 lookup(Key) ->
    ambitz:lookup(Key, []).
 
 lookup(#entity{ring = Ring, key = Key}=Entity, Opts) ->
-   call(Ring, ambit_req_lookup, Key, {'$ambitz', lookup, Entity}, Opts);
-
-lookup(Key, Opts) ->
-   ambitz:lookup(#entity{key = Key}, Opts).
+   call(Ring, ambit_req_lookup, Key, {'$ambitz', lookup, Entity}, Opts).
 
 %%
-%% discover service processes on the cluster
--spec whereis(key() | entity()) -> {ok, entity()}.
--spec whereis(key() | entity(), [_]) -> {ok, entity()}.
+%% discover actor processes on the cluster
+-spec whereis(entity()) -> {ok, entity()}.
+-spec whereis(entity(), [_]) -> {ok, entity()}.
 
 whereis(Key) ->
    ambitz:whereis(Key, []).
 
 whereis(#entity{ring = Ring, key = Key}=Entity, Opts) ->
-   call(Ring, ambit_req_whereis, Key, {'$ambitz', whereis, Entity}, Opts);
-
-whereis(Key, Opts) ->
-   ambitz:whereis(#entity{key = Key}, Opts).
+   call(Ring, ambit_req_whereis, Key, {'$ambitz', whereis, Entity}, Opts).
 
 %%
-%% configure service processes
--spec ioctl(_, key() | entity()) -> {ok, entity()}.
--spec ioctl(_, key() | entity(), [_]) -> {ok, entity()}.
+%% configure actor
+-spec ioctl(_, entity()) -> {ok, entity()}.
+-spec ioctl(_, entity(), [_]) -> {ok, entity()}.
 
 ioctl(Lens, Entity) ->
    ambitz:ioctl(Lens, Entity, []).
 
 ioctl(Lens, #entity{ring = Ring, key = Key}=Entity, Opts) ->
-   call(Ring, ambit_req_ioctl, Key, {'$ambitz', ioctl, {Lens, Entity}}, Opts);
-
-ioctl(Lens, Key, Opts) ->
-   ambitz:ioctl(Lens, #entity{key = Key}, Opts).
+   call(Ring, ambit_req_ioctl, Key, {'$ambitz', ioctl, {Lens, Entity}}, Opts).
 
 
