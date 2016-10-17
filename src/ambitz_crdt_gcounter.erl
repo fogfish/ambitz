@@ -22,7 +22,7 @@
    get/2,
    put/3,
    descend/2,
-   merge/2
+   join/2
 ]).
 
 %%
@@ -60,22 +60,22 @@ descend([{Node, _} = X | A], B) ->
 
 %%
 %%
-merge(A, B) ->
-   join(lists:keysort(1, A), lists:keysort(1, B)).   
+join(A, B) ->
+   join1(lists:keysort(1, A), lists:keysort(1, B)).   
 
-join([{NodeA, _} = X | A], [{NodeB, _} | _] = B)
+join1([{NodeA, _} = X | A], [{NodeB, _} | _] = B)
  when NodeA < NodeB ->
-   [X | join(A, B)];
+   [X | join1(A, B)];
 
-join([{NodeA, _} | _] = A, [{NodeB, _} = X | B])
+join1([{NodeA, _} | _] = A, [{NodeB, _} = X | B])
  when NodeA > NodeB ->
-   [X | join(A, B)];
+   [X | join1(A, B)];
 
-join([{Node, X} | A], [{Node, Y} | B]) ->
-   [{Node, erlang:max(X, Y)} | join(A, B)];
+join1([{Node, X} | A], [{Node, Y} | B]) ->
+   [{Node, erlang:max(X, Y)} | join1(A, B)];
 
-join([], B) ->
+join1([], B) ->
    B;
 
-join(A, []) ->
+join1(A, []) ->
    A.

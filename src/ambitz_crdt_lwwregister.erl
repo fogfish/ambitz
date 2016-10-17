@@ -22,13 +22,13 @@
    get/2,
    put/3,
    descend/2,
-   merge/2
+   join/2
 ]).
 
 %%
 %%
 new() ->
-   [undefined|uid:g()].
+   [undefined|uid:z()].
 
 %%
 %%
@@ -47,7 +47,7 @@ descend(A, B) ->
 
 %%
 %%
-merge(A, B) ->
+join(A, B) ->
    case tl(A) =< tl(B) of
       true  -> B;
       false -> A

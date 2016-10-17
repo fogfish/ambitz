@@ -22,7 +22,7 @@
    get/2,
    put/3,
    descend/2,
-   merge/2
+   join/2
 ]).
 
 
@@ -48,7 +48,7 @@ descend(A, B) ->
 
 %%
 %%
-merge(A, B) ->
+join(A, B) ->
    gb_sets:union(A, B).
 
 

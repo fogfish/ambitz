@@ -34,7 +34,7 @@
   ,get/1
   ,get/2
   ,descend/2
-  ,merge/2
+  ,join/2
   ,key/1
   ,vnode/1
   ,ring/1
@@ -178,11 +178,11 @@ descend(#entity{type = CRDT, val = A}, #entity{type = CRDT, val = B}) ->
    CRDT:descend(A, B).
 
 %%
-%% merges two value(s)
--spec merge(entity(), entity()) -> entity().
+%% join two value(s)
+-spec join(entity(), entity()) -> entity().
 
-merge(#entity{type = CRDT, val = A} = Entity, #entity{type = CRDT, val = B}) ->
-   Entity#entity{val = CRDT:merge(A, B)}.
+join(#entity{type = CRDT, val = A} = Entity, #entity{type = CRDT, val = B}) ->
+   Entity#entity{val = CRDT:join(A, B)}.
 
 %%
 %%
