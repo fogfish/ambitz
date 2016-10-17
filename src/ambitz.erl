@@ -37,6 +37,7 @@
   ,join/2
   ,key/1
   ,vnode/1
+  ,vnode/2
   ,ring/1
   ,ring/2
 ]).
@@ -197,6 +198,14 @@ key(#entity{key = Key}) ->
 
 vnode(#entity{vnode = Vnode}) ->
    Vnode.
+
+%%
+%%
+-spec vnode(ek:vnode(), entity()) -> entity().
+
+vnode(Vnode, #entity{} = Entity) ->
+   Entity#entity{vnode = Vnode}.
+
 
 %%
 %%
