@@ -275,10 +275,11 @@ call(Ring, Pool, Key, Req, Opts) ->
 -spec actor(key(), spec()) -> entity().
 
 actor(Key) ->
-   ambitz:new(lww_register, Key).
+   ambitz:put(undefined, ambitz:new(lww_register, Key)).
 
 actor(Key, {_, _, _} = Spec) ->
-   ambitz:put(Spec, actor(Key)).
+   ambitz:put(Spec, ambitz:new(lww_register, Key)).
+
 
 %%
 %% spawn actor on the cluster
