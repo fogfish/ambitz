@@ -28,7 +28,8 @@
    call/5
 ]).
 -export([
-   new/2
+   new/1
+  ,new/2
   ,put/2
   ,put/3
   ,get/1
@@ -139,7 +140,11 @@ behaviour_info(_) ->
 
 %% 
 %% create new data type instance
--spec new(key(), atom()) -> entity().
+-spec new(atom()) -> entity().
+-spec new(atom(), key()) -> entity().
+
+new(CRDT) ->
+   new(CRDT, undefined).
 
 new(gcounter, Key) ->
    new(ambitz_crdt_gcounter, Key);
