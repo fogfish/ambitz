@@ -335,6 +335,6 @@ ioctl(Lens, Entity) ->
    ambitz:ioctl(Lens, Entity, []).
 
 ioctl(Lens, #entity{ring = Ring, key = Key}=Entity, Opts) ->
-   call(Ring, ambit_req_ioctl, Key, {'$ambitz', ioctl, {Lens, Entity}}, Opts).
+   call(Ring, ambit_req_ioctl, Key, {'$ambitz', {ioctl, Lens}, Entity}, Opts).
 
 
