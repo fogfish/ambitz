@@ -380,7 +380,7 @@ whereis(Key) ->
 whereis(Ring, Key) ->
    call(Ring, ambit_req_whereis, Key, 
       {'$ambitz', whereis, 
-         #entity{ring = Ring, key = Key, val = crdts:new(gset)}
+         #entity{ring = Ring, key = Key, val = crdts:new(gsets)}
       },
       []
    ).
