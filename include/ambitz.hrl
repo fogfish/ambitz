@@ -17,7 +17,6 @@
 %%
 %% ambit entity
 -record(entity, {
-   type  = undefined :: atom(),         %% data type
    ring  = ambit     :: atom(),         %% unique identity of ring
    key   = undefined :: binary(),       %% unique identity of actor
    val   = undefined :: any(),          %% commutativity replicated data type

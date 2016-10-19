@@ -27,32 +27,36 @@
    call/4,
    call/5
 ]).
+% -export([
+%    new/1
+%   ,new/2
+%   ,put/2
+%   ,put/3
+%   ,get/1
+%   ,get/2
+%   ,descend/2
+%   ,join/2
+%   ,key/1
+%   ,vnode/1
+%   ,vnode/2
+%   ,ring/1
+%   ,ring/2
+% ]).
 -export([
-   new/1
-  ,new/2
-  ,put/2
-  ,put/3
-  ,get/1
-  ,get/2
-  ,descend/2
-  ,join/2
-  ,key/1
-  ,vnode/1
-  ,vnode/2
-  ,ring/1
-  ,ring/2
-]).
--export([
-   actor/1,
-   actor/2,
-   spawn/1,
+   % actor/1,
+   % actor/2,
    spawn/2,
+   spawn/3,
    lookup/1,
    lookup/2,
    whereis/1,
    whereis/2,
-   ioctl/2,
-   ioctl/3,
+   put/3,
+   put/4,
+   get/2,
+   get/3,
+   % ioctl/2,
+   % ioctl/3,
    free/1,
    free/2
 ]).
@@ -61,7 +65,9 @@
 
 %%
 %% data types
+-type ring()   :: atom().
 -type key()    :: binary().
+-type lens()   :: _.
 -type spec()   :: mfa().
 -type entity() :: #entity{}.
 
@@ -140,95 +146,95 @@ behaviour_info(_) ->
 
 %% 
 %% create new data type instance
--spec new(atom()) -> entity().
--spec new(atom(), key()) -> entity().
+% -spec new(atom()) -> entity().
+% -spec new(atom(), key()) -> entity().
 
-new(CRDT) ->
-   new(CRDT, undefined).
+% new(CRDT) ->
+%    new(CRDT, undefined).
 
-new(gcounter, Key) ->
-   new(ambitz_crdt_gcounter, Key);
+% new(gcounter, Key) ->
+%    new(ambitz_crdt_gcounter, Key);
 
-new(lww_register, Key) ->
-   new(ambitz_crdt_lwwregister, Key);
+% new(lww_register, Key) ->
+%    new(ambitz_crdt_lwwregister, Key);
 
-new(gset, Key) ->
-   new(ambitz_crdt_gset, Key);
+% new(gset, Key) ->
+%    new(ambitz_crdt_gset, Key);
 
-new(CRDT, Key) ->
-   #entity{type = CRDT, key = Key, val = CRDT:new()}.   
+% new(CRDT, Key) ->
+%    #entity{type = CRDT, key = Key, val = CRDT:new()}.   
 
 %%
 %% update operation of data type
--spec put(_, entity()) -> entity().
--spec put(_, _, entity()) -> entity().
+% -spec put(_, entity()) -> entity().
+% -spec put(_, _, entity()) -> entity().
 
-put(X, #entity{} = Entity) ->
-   ambitz:put(undefined, X, Entity).
+% put(X, #entity{} = Entity) ->
+%    ambitz:put(undefined, X, Entity).
 
-put(Lens, X, #entity{type = CRDT, val = Val} = Entity) ->
-   Entity#entity{val = CRDT:put(Lens, X, Val)}.
+% put(Lens, X, #entity{type = CRDT, val = Val} = Entity) ->
+%    Entity#entity{val = CRDT:put(Lens, X, Val)}.
 
 %%
 %% query local state of data type
--spec get(entity()) -> _.
--spec get(_, entity()) -> _.
+% -spec get(entity()) -> _.
+% -spec get(_, entity()) -> _.
 
-get(#entity{} = Entity) ->
-   ambitz:get(undefined, Entity).
+% get(#entity{} = Entity) ->
+%    ambitz:get(undefined, Entity).
 
-get(Lens, #entity{type = CRDT, val = Val}) ->
-   CRDT:get(Lens, Val).
+% get(Lens, #entity{type = CRDT, val = Val}) ->
+%    CRDT:get(Lens, Val).
 
 %%
 %% compare values, return if A =< B in semi-lattice
--spec descend(entity(), entity()) -> true | false.
+% -spec descend(entity(), entity()) -> true | false.
 
-descend(#entity{type = CRDT, val = A}, #entity{type = CRDT, val = B}) ->
-   CRDT:descend(A, B).
+% descend(#entity{type = CRDT, val = A}, #entity{type = CRDT, val = B}) ->
+%    CRDT:descend(A, B).
 
 %%
 %% join two value(s)
--spec join(entity(), entity()) -> entity().
+% -spec join(entity(), entity()) -> entity().
 
-join(#entity{type = CRDT, val = A} = Entity, #entity{type = CRDT, val = B}) ->
-   Entity#entity{val = CRDT:join(A, B)}.
-
-%%
-%%
--spec key(entity()) -> _.
-
-key(#entity{key = Key}) ->
-   Key.
+% join(#entity{type = CRDT, val = A} = Entity, #entity{type = CRDT, val = B}) ->
+%    Entity#entity{val = CRDT:join(A, B)}.
 
 %%
 %%
--spec vnode(entity()) -> [ek:vnode()].
+% -spec key(entity()) -> _.
 
-vnode(#entity{vnode = Vnode}) ->
-   Vnode.
-
-%%
-%%
--spec vnode(ek:vnode(), entity()) -> entity().
-
-vnode(Vnode, #entity{} = Entity) ->
-   Entity#entity{vnode = Vnode}.
-
+% key(#entity{key = Key}) ->
+%    Key.
 
 %%
 %%
--spec ring(entity()) -> atom().
+% -spec vnode(entity()) -> [ek:vnode()].
 
-ring(#entity{ring = Ring}) ->
-   Ring.
+% vnode(#entity{vnode = Vnode}) ->
+%    Vnode.
 
 %%
 %%
--spec ring(atom(), entity()) -> entity().
+% -spec vnode(ek:vnode(), entity()) -> entity().
 
-ring(Ring, #entity{} = Entity) ->
-   Entity#entity{ring = Ring}.   
+% vnode(Vnode, #entity{} = Entity) ->
+%    Entity#entity{vnode = Vnode}.
+
+
+%%
+%%
+% -spec ring(entity()) -> atom().
+
+% ring(#entity{ring = Ring}) ->
+%    Ring.
+
+%%
+%%
+% -spec ring(atom(), entity()) -> entity().
+
+% ring(Ring, #entity{} = Entity) ->
+%    Entity#entity{ring = Ring}.   
 
 
 %%%----------------------------------------------------------------------------   
@@ -276,70 +282,153 @@ call(Ring, Pool, Key, Req, Opts) ->
 
 %%
 %% create actor specification
--spec actor(key()) -> entity().
--spec actor(key(), spec()) -> entity().
+% -spec actor(key()) -> entity().
+% -spec actor(key(), spec()) -> entity().
 
-actor(Key) ->
-   ambitz:put(undefined, ambitz:new(lww_register, Key)).
+% actor(Key) ->
+%    ambitz:put(undefined, ambitz:new(lww_register, Key)).
 
-actor(Key, {_, _, _} = Spec) ->
-   ambitz:put(Spec, ambitz:new(lww_register, Key)).
+% actor(Key, {_, _, _} = Spec) ->
+%    ambitz:put(Spec, ambitz:new(lww_register, Key)).
 
 
 %%
 %% spawn actor on the cluster
--spec spawn(entity()) -> {ok, entity()}.
--spec spawn(entity(), [_]) -> {ok, entity()}.
+-spec spawn(key(), spec()) -> {ok, entity()}.
+-spec spawn(ring(), key(), spec()) -> {ok, entity()}.
 
-spawn(Entity) ->
-   ambitz:spawn(Entity, []).
+spawn(Key, Spec) ->
+   ambitz:spawn(ambit, Key, Spec).
 
-spawn(#entity{ring = Ring, key = Key}=Entity, Opts) ->
-   call(Ring, ambit_req_create, Key, {'$ambitz', spawn, Entity}, Opts).
+spawn(Ring, Key, Spec) ->
+   call(Ring, ambit_req_spawn, Key, 
+      {'$ambitz', spawn, 
+         #entity{ring = Ring, key = Key, val = crdts:update(Spec, crdts:new(lwwreg))}
+      }
+   ).
+
+% -spec spawn(entity()) -> {ok, entity()}.
+% -spec spawn(entity(), [_]) -> {ok, entity()}.
+
+% spawn(Entity) ->
+%    ambitz:spawn(Entity, []).
+
+% spawn(#entity{ring = Ring, key = Key}=Entity, Opts) ->
+%    call(Ring, ambit_req_create, Key, {'$ambitz', spawn, Entity}, Opts).
 
 %%
 %% terminate (free) actor on the cluster
--spec free(entity()) -> {ok, entity()}.
--spec free(entity(), [_]) -> {ok, entity()}.
+-spec free(key()) -> {ok, entity()}.
+-spec free(ring(), key()) -> {ok, entity()}.
 
-free(Entity) ->
-   ambitz:free(Entity, []).
+free(Key) ->
+   ambitz:free(ambit, Key).
 
-free(#entity{ring = Ring, key = Key}=Entity, Opts) ->
-   call(Ring, ambit_req_remove, Key, {'$ambitz', free, Entity}, Opts).
+free(Ring, Key) ->
+   call(Ring, ambit_req_free, Key, 
+      {'$ambitz', free, 
+         #entity{ring = Ring, key = Key, val = crdts:new(lwwreg)}
+      }
+   ).
+
+
+% -spec free(entity()) -> {ok, entity()}.
+% -spec free(entity(), [_]) -> {ok, entity()}.
+
+% free(Entity) ->
+%    ambitz:free(Entity, []).
+
+% free(#entity{ring = Ring, key = Key}=Entity, Opts) ->
+%    call(Ring, ambit_req_remove, Key, {'$ambitz', free, Entity}, Opts).
 
 
 %%
 %% lookup actor on the cluster
--spec lookup(entity()) -> {ok, entity()}.
--spec lookup(entity(), [_]) -> {ok, entity()}.
+-spec lookup(key()) -> {ok, entity()}.
+-spec lookup(ring(), key()) -> {ok, entity()}.
 
 lookup(Key) ->
-   ambitz:lookup(Key, []).
+   ambitz:lookup(ambit, Key).
 
-lookup(#entity{ring = Ring, key = Key}=Entity, Opts) ->
-   call(Ring, ambit_req_lookup, Key, {'$ambitz', lookup, Entity}, Opts).
+lookup(Ring, Key) ->
+   call(Ring, ambit_req_lookup, Key, 
+      {'$ambitz', lookup, 
+         #entity{ring = Ring, key = Key}
+      }
+   ).
+
+% -spec lookup(entity()) -> {ok, entity()}.
+% -spec lookup(entity(), [_]) -> {ok, entity()}.
+
+% lookup(Key) ->
+%    ambitz:lookup(Key, []).
+
+% lookup(#entity{ring = Ring, key = Key}=Entity, Opts) ->
+%    call(Ring, ambit_req_lookup, Key, {'$ambitz', lookup, Entity}, Opts).
 
 %%
 %% discover actor processes on the cluster
--spec whereis(entity()) -> {ok, entity()}.
--spec whereis(entity(), [_]) -> {ok, entity()}.
+-spec whereis(key()) -> {ok, entity()}.
+-spec whereis(ring(), key()) -> {ok, entity()}.
 
 whereis(Key) ->
-   ambitz:whereis(Key, []).
+   ambitz:whereis(ambit, Key).
 
-whereis(#entity{ring = Ring, key = Key}=Entity, Opts) ->
-   call(Ring, ambit_req_whereis, Key, {'$ambitz', whereis, Entity}, Opts).
+whereis(Ring, Key) ->
+   call(Ring, ambit_req_whereis, Key, 
+      {'$ambitz', whereis, 
+         #entity{ring = Ring, key = Key, val = crdts:new(gset)}
+      }
+   ).
+
+% -spec whereis(entity()) -> {ok, entity()}.
+% -spec whereis(entity(), [_]) -> {ok, entity()}.
+
+% whereis(Key) ->
+%    ambitz:whereis(Key, []).
+
+% whereis(#entity{ring = Ring, key = Key}=Entity, Opts) ->
+%    call(Ring, ambit_req_whereis, Key, {'$ambitz', whereis, Entity}, Opts).
+
+-spec put(key(), lens(), crdts:crdt()) -> {ok, entity()}.
+-spec put(ring(), key(), lens(), crdts:crdt()) -> {ok, entity()}.
+
+put(Key, Lens, Value) ->
+   ambitz:put(ambit, Key, Lens, Value).
+
+put(Ring, Key, Lens, Value) ->
+   call(Ring, ambit_req_put, Key, 
+      {'$ambitz', {put, Lens}, 
+         #entity{ring = Ring, key = Key, val = Value}
+      }
+   ).
+   
+
+-spec get(key(), lens()) -> {ok, entity()}.
+-spec get(ring(), key(), lens()) -> {ok, entity()}.
+
+get(Key, Lens) ->
+   ambitz:get(ambit, Key, Lens).
+
+get(Ring, Key, Lens) ->
+   call(Ring, ambit_req_get, Key, 
+      {'$ambitz', {get, Lens}, 
+         #entity{ring = Ring, key = Key}
+      }
+   ).
+
+%% do we need opts (r, w for this data types) ?
+%% can we use descend / merge for conflict resolution ?
 
 %%
 %% configure actor
--spec ioctl(_, entity()) -> {ok, entity()}.
--spec ioctl(_, entity(), [_]) -> {ok, entity()}.
+% -spec ioctl(_, entity()) -> {ok, entity()}.
+% -spec ioctl(_, entity(), [_]) -> {ok, entity()}.
 
-ioctl(Lens, Entity) ->
-   ambitz:ioctl(Lens, Entity, []).
+% ioctl(Lens, Entity) ->
+%    ambitz:ioctl(Lens, Entity, []).
 
-ioctl(Lens, #entity{ring = Ring, key = Key}=Entity, Opts) ->
-   call(Ring, ambit_req_ioctl, Key, {'$ambitz', {ioctl, Lens}, Entity}, Opts).
+% ioctl(Lens, #entity{ring = Ring, key = Key}=Entity, Opts) ->
+%    call(Ring, ambit_req_ioctl, Key, {'$ambitz', {ioctl, Lens}, Entity}, Opts).
 
 
