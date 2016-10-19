@@ -304,7 +304,8 @@ spawn(Ring, Key, Spec) ->
    call(Ring, ambit_req_spawn, Key, 
       {'$ambitz', spawn, 
          #entity{ring = Ring, key = Key, val = crdts:update(Spec, crdts:new(lwwreg))}
-      }
+      },
+      []
    ).
 
 % -spec spawn(entity()) -> {ok, entity()}.
@@ -328,7 +329,8 @@ free(Ring, Key) ->
    call(Ring, ambit_req_free, Key, 
       {'$ambitz', free, 
          #entity{ring = Ring, key = Key, val = crdts:new(lwwreg)}
-      }
+      },
+      []
    ).
 
 
@@ -354,7 +356,8 @@ lookup(Ring, Key) ->
    call(Ring, ambit_req_lookup, Key, 
       {'$ambitz', lookup, 
          #entity{ring = Ring, key = Key}
-      }
+      },
+      []
    ).
 
 % -spec lookup(entity()) -> {ok, entity()}.
@@ -378,7 +381,8 @@ whereis(Ring, Key) ->
    call(Ring, ambit_req_whereis, Key, 
       {'$ambitz', whereis, 
          #entity{ring = Ring, key = Key, val = crdts:new(gset)}
-      }
+      },
+      []
    ).
 
 % -spec whereis(entity()) -> {ok, entity()}.
@@ -400,7 +404,8 @@ put(Ring, Key, Lens, Value) ->
    call(Ring, ambit_req_put, Key, 
       {'$ambitz', {put, Lens}, 
          #entity{ring = Ring, key = Key, val = Value}
-      }
+      },
+      []
    ).
    
 
@@ -414,7 +419,8 @@ get(Ring, Key, Lens) ->
    call(Ring, ambit_req_get, Key, 
       {'$ambitz', {get, Lens}, 
          #entity{ring = Ring, key = Key}
-      }
+      },
+      []
    ).
 
 %% do we need opts (r, w for this data types) ?
