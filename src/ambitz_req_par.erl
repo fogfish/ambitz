@@ -28,7 +28,7 @@
   ,active/3
 ]).
 -export([
-   call/5
+   call/3
 ]).
 
 %%
@@ -71,22 +71,26 @@ ioctl(_, _) ->
 
 %%
 %% synchronous request to distributed actors
-call(Ring, Pool, Key, Req, Opts) ->
-   #request{peer = Peer} = Request = ambitz_req:new(Ring, Key, Req, Opts),
-   do_call(Peer, Pool, Request).
+call(Pool, #entity{ring = Ring, key = Key} = Entity, Opts) ->
+   %% @todo: use strict coordinator(s) order for write and random for reads
+   %%        exclude handoff nodes from read candidates
+   Vnode   = ek:successors(Ring, Key),
+   Request = ambitz_req:new(Entity#entity{vnode = Vnode}, Opts),
+   request(Vnode, Pool, Request).
 
-do_call([Head | Tail], Pool, #request{key = _Key, t = T} = Req) ->
+request([Head | Tail], Pool, #request{t = T, entity = #entity{key = _Key}} = Req) ->
    Peer = erlang:node( ek:vnode(peer, Head) ),
    ?DEBUG("ambitz [req]: init, key ~p, coord ~p", [_Key, Peer]),
    case pq:call({Pool, Peer}, Req, T) of
       {error, ebusy} ->
-         do_call(Tail, Pool, Req);
+         request(Tail, Pool, Req);
       Result ->
          Result
    end;
 
-do_call([], _Pool, _Req) ->
+request([], _Pool, _Req) ->
    {error, ebusy}.
+
 
 %%%----------------------------------------------------------------------------   
 %%%
@@ -96,20 +100,15 @@ do_call([], _Pool, _Req) ->
 
 %%
 %%
-idle(#request{key = _Key} = Request0, Pipe, #state{mod = Mod} = State) ->
-   ?DEBUG("ambitz [req]: recv key ~p, coord ~p", [_Key, erlang:node()]),
-   Request1 = ambitz_req:coordinate(Mod, Pipe, Request0),
-   case ambitz_req:ensure(Request1) of
-      ok ->
-         {next_state, active,
-            State#state{req = ambitz_req:cast(Request1)}
-         };
-
-      {error, Reason} ->
-         ?DEBUG("ambitz [req]: failure, key ~p, coord ~p, reason ~p", [Key, erlang:node(), Reason]),
-         pipe:ack(Pipe, {error, [Reason]}),
-         {next_state, idle, State}
-   end.
+idle(#request{entity = #entity{key = _Key}} = Request, Pipe, #state{mod = Mod} = State) ->
+   ?DEBUG("ambitz [req]: ~p recv key ~p", [erlang:node(), _Key]),
+   {next_state, active,
+      State#state{
+         req = ambitz_req:cast(
+            ambitz_req:coordinate(Mod, Pipe, Request)
+         )
+      }
+   }.
 
 %% 
 %%

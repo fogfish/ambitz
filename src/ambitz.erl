@@ -23,9 +23,8 @@
 -export([start/0]).
 -export([
    start_link/2,
-   call/3,
-   call/4,
-   call/5
+   call/2,
+   call/3
 ]).
 -export([
    spawn/2
@@ -73,19 +72,19 @@ behaviour_info(callbacks) ->
       %% ensure presence of actor in the cluster
       %%
       %% -spec(ensure/3 :: ([ek:vnode()], key(), opts()) -> false | [ek:vnode()]).
-      {ensure,   3}
+      % {ensure,   3}
 
       %%
       %% generate globally unique transaction id
       %%
       %% -spec(guid/1 :: (any()) -> any()).
-     ,{guid,     1}
+      % ,{guid,     1}
 
       %%
       %% monitor transaction actor
       %%
       %% -spec(monitor/1 :: (ek:vnode()) -> reference()). 
-     ,{monitor, 1}
+      {monitor, 1}
 
       %%
       %% asynchronously cast request to transaction handler / actor
@@ -98,13 +97,13 @@ behaviour_info(callbacks) ->
       %% returns value and its signature
       %%
       %% -spec(unit/1 :: (any()) -> {any(), any()}).
-     ,{unit,    1}
+     % {unit,    1}
 
       %%
       %% accumulates and merges correlated response
       %%
       %% -spec(join/2 :: (any(), any()) -> any()).
-     ,{join,    2}
+     % {join,    2}
 
       %%
       %% optional - read repair
@@ -131,6 +130,7 @@ start() ->
 -spec start_link(atom(), integer()) -> {ok, pid()} | {error, any()}.
 
 start_link(Mod, Capacity) ->
+   %% @todo: use unbounded pool of workers
    pq:start_link(Mod, [
       {capacity, Capacity}
      ,{worker,   {ambitz_req_par, [Mod]}}
@@ -139,18 +139,15 @@ start_link(Mod, Capacity) ->
 
 %%
 %% request distributed actor
--spec call(atom(), binary(), any()) -> {ok, entity()}.
--spec call(atom(), binary(), any(), list()) -> {ok, entity()}.
--spec call(atom(), atom(), binary(), any(), list()) -> {ok, entity()}.
+-spec call(atom(), entity()) -> {ok, entity()}.
+-spec call(atom(), entity(), opts()) -> {ok, entity()}.
 
-call(Pool, Key, Req) ->
-   ambitz_req_par:call(ambit, Pool, Key, Req, []).
    
-call(Pool, Key, Req, Opts) ->
-   ambitz_req_par:call(ambit, Pool, Key, Req, Opts).
+call(Pool, Entity) ->
+   ambitz_req_par:call(Pool, Entity, []).
 
-call(Ring, Pool, Key, Req, Opts) ->
-   ambitz_req_par:call(Ring, Pool, Key, Req, Opts).
+call(Pool, Entity, Opts) ->
+   ambitz_req_par:call(Pool, Entity, Opts).
 
 %%%----------------------------------------------------------------------------   
 %%%
@@ -174,10 +171,8 @@ spawn(Ring, Key, Spec) ->
    ambitz:spawn(Ring, Key, Spec, []).
 
 spawn(Ring, Key, Spec, Opts) ->
-   call(Ring, ambit_req_spawn, Key, 
-      {'$ambitz', spawn, 
-         #entity{ring = Ring, key = Key, val = crdts:update(Spec, crdts:new(lwwreg))}
-      },
+   call(ambit_req_spawn,  
+      #entity{ring = Ring, key = Key, val = crdts:update(Spec, crdts:new(lwwreg))},
       Opts
    ).
 
@@ -198,10 +193,8 @@ free(Ring, Key) ->
    ambitz:free(Ring, Key, []).
 
 free(Ring, Key, Opts) ->
-   call(Ring, ambit_req_free, Key, 
-      {'$ambitz', free, 
-         #entity{ring = Ring, key = Key, val = crdts:new(lwwreg)}
-      },
+   call(ambit_req_free,  
+      #entity{ring = Ring, key = Key, val = crdts:new(lwwreg)},
       Opts
    ).
 
@@ -221,10 +214,8 @@ lookup(Ring, Key) ->
    ambitz:lookup(Ring, Key, []).
 
 lookup(Ring, Key, Opts) ->
-   call(Ring, ambit_req_lookup, Key, 
-      {'$ambitz', lookup, 
-         #entity{ring = Ring, key = Key}
-      },
+   call(ambit_req_lookup,  
+      #entity{ring = Ring, key = Key},
       Opts
    ).
 
@@ -244,10 +235,8 @@ whereis(Ring, Key) ->
    ambitz:whereis(Ring, Key, []).
 
 whereis(Ring, Key, Opts) ->
-   call(Ring, ambit_req_whereis, Key, 
-      {'$ambitz', whereis, 
-         #entity{ring = Ring, key = Key, val = crdts:new(gsets)}
-      },
+   call(ambit_req_whereis, 
+      #entity{ring = Ring, key = Key, val = crdts:new(gsets)},
       Opts
    ).
 
@@ -264,11 +253,9 @@ put(Ring, Key, Lens, Value) ->
    ambitz:put(Ring, Key, Lens, Value, []).
 
 put(Ring, Key, Lens, Value, Opts) ->
-   call(Ring, ambit_req_put, Key, 
-      {'$ambitz', {put, Lens}, 
-         #entity{ring = Ring, key = Key, val = Value}
-      },
-      Opts
+   call(ambit_req_put,
+      #entity{ring = Ring, key = Key, val = Value},
+      [{lens, Lens}|Opts]
    ).
    
 %%
@@ -284,9 +271,7 @@ get(Ring, Key, Lens) ->
    ambitz:get(Ring, Key, Lens).
 
 get(Ring, Key, Lens, Opts) ->
-   call(Ring, ambit_req_get, Key, 
-      {'$ambitz', {get, Lens}, 
-         #entity{ring = Ring, key = Key}
-      },
-      Opts
+   call(ambit_req_get, 
+      #entity{ring = Ring, key = Key},
+      [{lens, Lens}|Opts]
    ).

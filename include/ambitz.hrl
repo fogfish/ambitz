@@ -19,26 +19,32 @@
 -record(entity, {
    ring  = ambit     :: atom(),         %% unique identity of ring
    key   = undefined :: binary(),       %% unique identity of actor
-   val   = undefined :: any(),          %% commutativity replicated data type
+   val   = undefined :: crdts:crdt(),   %% commutativity replicated data type
    vnode = []        :: [ek:vnode()]    %% list of v-node
 }).
 
 %%
 %% ambit request (client -> coordinator)
+%% @todo: design algebraic data type(s)
 -record(request, {
-   peer    = undefined :: [ek:vnode()],  %% list of peers to executed request
-   key     = undefined :: binary(),      %% request key
-   uid     = undefined :: any(),         %% unique transaction id (k-order)
+   entity  = undefined :: #entity{}     %% request entity
+  ,opts    = undefined :: [_]           %% raw options to pass
 
-   req     = undefined :: any(),         %% request payload
-   value   = undefined :: [{_, _}],      %% request result
-   tx      = undefined :: [_],           %% list of on-going transactions
+   %% request flags
+  ,n       = undefined :: integer()     %% number of successful responses
+  ,t       = undefined :: timeout()     %% request timeout
+  ,commit  = undefined :: atom()        %% algorithms to commit request
+}).
 
-   mod     = undefined :: atom(),        %% module implementing request
-   pipe    = undefined :: any(),         %% pipe to communicate result back          
-   n       = undefined :: integer(),     %% number of successful responses
-   t       = undefined :: timeout(),     %% request timeout
-   commit  = undefined :: atom()         %% post commit algorithms
+-record(cast, {
+   mod     = undefined :: atom()         %% module implementing request
+  ,pipe    = undefined :: any()          %% pipe to communicate result back
+  ,tx      = undefined :: [_]            %% list of on-going transactions
+  ,t       = undefined :: timeout()      %% request timeout
+  ,n       = undefined :: integer()      %% number of successful responses
+  ,value   = []        :: [#entity{}]    %% accepted successful result
+  ,error   = []        :: [{error,_}]    %% accepted failures
+  ,request = undefined :: #request{}     %% original request     
 }).
 
 
