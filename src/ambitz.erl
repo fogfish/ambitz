@@ -69,18 +69,6 @@
 behaviour_info(callbacks) ->
    [
       %%
-      %% ensure presence of actor in the cluster
-      %%
-      %% -spec(ensure/3 :: ([ek:vnode()], key(), opts()) -> false | [ek:vnode()]).
-      % {ensure,   3}
-
-      %%
-      %% generate globally unique transaction id
-      %%
-      %% -spec(guid/1 :: (any()) -> any()).
-      % ,{guid,     1}
-
-      %%
       %% monitor transaction actor
       %%
       %% -spec(monitor/1 :: (ek:vnode()) -> reference()). 
@@ -89,27 +77,14 @@ behaviour_info(callbacks) ->
       %%
       %% asynchronously cast request to transaction handler / actor
       %%
-      %% -spec(cast/4 :: (ek:vnode(), key(), req(), opts()) -> reference()). 
-     ,{cast,    4} 
-
-      %%
-      %% accept response from transaction actor, 
-      %% returns value and its signature
-      %%
-      %% -spec(unit/1 :: (any()) -> {any(), any()}).
-     % {unit,    1}
-
-      %%
-      %% accumulates and merges correlated response
-      %%
-      %% -spec(join/2 :: (any(), any()) -> any()).
-     % {join,    2}
+      %% -spec(cast/4 :: (ek:vnode(), entity(), opts()) -> reference()). 
+     ,{cast,    3} 
 
       %%
       %% optional - read repair
       %% 
-      %% -spec(repair/2 :: (peers(), any()) -> ok).
-      %% {repair, 2}
+      %% -spec(repair/2 :: (ek:vnode(), entity(), opts()) -> ok).
+      %% {repair, 3}
    ];
 behaviour_info(_) ->
    undefined.

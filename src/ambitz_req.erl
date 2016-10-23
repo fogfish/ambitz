@@ -134,14 +134,28 @@ commit(#cast{pipe = Pipe, value = [Head|Tail]} = Request) ->
 
 finalize(_, #cast{request = #request{commit = undefined}}) ->
    ok;
+finalize(EntityB, #cast{request = #request{commit = repair, opts = Opts}, mod = Mod, value = List}) ->
+   lists:foreach(
+      fun(EntityA) -> repair(Mod, EntityA, EntityB, Opts) end,
+      List
+   );   
+
 finalize(_, #cast{request = #request{commit = _}}) ->
    %% @todo: implement read repair
    ok.
 
+%%
+%%
 join(#entity{vnode = VnodeA, val = A} = EntityA, #entity{vnode = VnodeB, val = B}) ->
    EntityA#entity{vnode = VnodeA ++ VnodeB, val = crdts:join(A, B)}.
 
-   
+repair(Mod, #entity{vnode = [VnodeA], val = A}, #entity{val = B} = EntityB, Opts)
+ when A =/= B ->
+   Mod:repair(VnodeA, EntityB, Opts);
+
+repair(_Mod, _EntityB, _EntityA, _Opts) ->
+   ok.
+
 %    case
 %       lists:partition(
 %          fun({_, {List, _Val}}) -> length(List) >= N end, 
