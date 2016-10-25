@@ -244,7 +244,7 @@ get(Key, Lens) ->
    ambitz:get(ambit, Key, Lens).
 
 get(Ring, Key, Lens) ->
-   ambitz:get(Ring, Key, Lens).
+   ambitz:get(Ring, Key, Lens, []).
 
 get(Ring, Key, Lens, Opts) ->
    call(ambit_req_get, 
