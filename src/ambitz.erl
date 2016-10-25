@@ -108,6 +108,7 @@ start_link(Mod, Capacity) ->
    %% @todo: use unbounded pool of workers
    pq:start_link(Mod, [
       {capacity, Capacity}
+     ,{strategy, lifo}
      ,{worker,   {ambitz_req_par, [Mod]}}
    ]). 
 
