@@ -134,9 +134,8 @@ call(Pool, Entity, Opts) ->
 %%
 %% spawn actor on the cluster
 %%  Options
-%%    w :: integer()
-%%    t :: integer()
-%%    supervise :: temporary | transient | permanent
+%%    w - 
+%%    t -
 -spec spawn(key(), spec()) -> {ok, entity()}.
 -spec spawn(ring(), key(), spec()) -> {ok, entity()}.
 -spec spawn(ring(), key(), spec(), opts()) -> {ok, entity()}.
