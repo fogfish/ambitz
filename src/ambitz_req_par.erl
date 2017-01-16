@@ -93,12 +93,12 @@ request([], _Pool, _Req) ->
 
 %%
 %%
-whereis(Ring, Key)
- when is_binary(Key) ->
-   ek:successors(Ring, Key);
+whereis(Ring, {vnode, Addr, _Key}) ->
+   ek:successors(Ring, Addr);
 
-whereis(Ring, {_, Addr}) ->
-   ek:successors(Ring, Addr).
+whereis(Ring, Key) ->
+   ek:successors(Ring, Key).
+
 
 %%%----------------------------------------------------------------------------   
 %%%
