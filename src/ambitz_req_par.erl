@@ -74,7 +74,7 @@ ioctl(_, _) ->
 call(Pool, #entity{ring = Ring, key = Key} = Entity, Opts) ->
    %% @todo: use strict coordinator(s) order for write and random for reads
    %%        exclude handoff nodes from read candidates
-   Vnode   = ek:successors(Ring, Key),
+   Vnode   = whereis(Ring, Key),
    Request = ambitz_req:new(Entity#entity{vnode = Vnode}, Opts),
    request(Vnode, Pool, Request).
 
@@ -91,6 +91,14 @@ request([Head | Tail], Pool, #request{t = T, entity = #entity{key = _Key}} = Req
 request([], _Pool, _Req) ->
    {error, ebusy}.
 
+%%
+%%
+whereis(Ring, Key)
+ when is_binary(Key) ->
+   ek:successors(Ring, Key);
+
+whereis(Ring, {_, Addr}) ->
+   ek:successors(Ring, Addr).
 
 %%%----------------------------------------------------------------------------   
 %%%
